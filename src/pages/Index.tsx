@@ -1,16 +1,75 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { useAtendimentos } from '@/hooks/use-atendimentos';
+import { DashboardCards } from '@/components/DashboardCards';
+import { QuickMode } from '@/components/QuickMode';
+import { AtendimentoList } from '@/components/AtendimentoList';
+import { AtendimentoForm } from '@/components/AtendimentoForm';
+import { Atendimento } from '@/types/atendimento';
+import { Button } from '@/components/ui/button';
+import { Plus, Activity } from 'lucide-react';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const { atendimentos, adicionar, atualizar, remover } = useAtendimentos();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editando, setEditando] = useState<Atendimento | null>(null);
+
+  const handleEdit = (a: Atendimento) => {
+    setEditando(a);
+    setFormOpen(true);
+  };
+
+  const handleSave = (a: Atendimento) => {
+    if (editando) {
+      atualizar(a.id, a);
+    } else {
+      adicionar(a);
+    }
+    setEditando(null);
+  };
+
+  const handleStatusChange = (id: string, status: Atendimento['status']) => {
+    atualizar(id, { status });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border/50 px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Activity className="w-5 h-5 text-primary" />
+            <h1 className="text-lg font-bold">agenda-log</h1>
+            <span className="text-xs text-muted-foreground font-mono">rastreador de trabalho faturável</span>
+          </div>
+          <Button size="sm" onClick={() => { setEditando(null); setFormOpen(true); }} className="gap-1">
+            <Plus className="w-4 h-4" /> Novo
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-6 py-6 space-y-6">
+        <QuickMode onSave={adicionar} />
+        <DashboardCards atendimentos={atendimentos} />
+        <div>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+            Atendimentos ({atendimentos.length})
+          </h2>
+          <AtendimentoList
+            atendimentos={atendimentos}
+            onEdit={handleEdit}
+            onDelete={remover}
+            onStatusChange={handleStatusChange}
+          />
+        </div>
+      </main>
+
+      <AtendimentoForm
+        open={formOpen}
+        onOpenChange={(v) => { setFormOpen(v); if (!v) setEditando(null); }}
+        onSave={handleSave}
+        editando={editando}
+      />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
