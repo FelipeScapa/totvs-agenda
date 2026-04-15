@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAtendimentos } from '@/hooks/use-atendimentos';
 import { DashboardCards } from '@/components/DashboardCards';
 import { QuickMode } from '@/components/QuickMode';
@@ -8,7 +8,8 @@ import { ClienteManager } from '@/components/ClienteManager';
 import { TipoManager } from '@/components/TipoManager';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
-import { Plus, Activity, Users, Tag } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Activity, Users, Tag, X } from 'lucide-react';
 
 const Index = () => {
   const { atendimentos, adicionar, atualizar, remover } = useAtendimentos();
@@ -16,6 +17,16 @@ const Index = () => {
   const [editando, setEditando] = useState<Atendimento | null>(null);
   const [clienteOpen, setClienteOpen] = useState(false);
   const [tipoOpen, setTipoOpen] = useState(false);
+  const [filtroDataInicio, setFiltroDataInicio] = useState('');
+  const [filtroDataFim, setFiltroDataFim] = useState('');
+
+  const atendimentosFiltrados = useMemo(() => {
+    return atendimentos.filter(a => {
+      if (filtroDataInicio && a.data < filtroDataInicio) return false;
+      if (filtroDataFim && a.data > filtroDataFim) return false;
+      return true;
+    });
+  }, [atendimentos, filtroDataInicio, filtroDataFim]);
 
   const handleEdit = (a: Atendimento) => {
     setEditando(a);
@@ -62,11 +73,35 @@ const Index = () => {
         <QuickMode onSave={adicionar} />
         <DashboardCards atendimentos={atendimentos} />
         <div>
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            Atendimentos ({atendimentos.length})
-          </h2>
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Atendimentos ({atendimentosFiltrados.length})
+            </h2>
+            <div className="flex items-center gap-2 ml-auto">
+              <Input
+                type="date"
+                value={filtroDataInicio}
+                onChange={e => setFiltroDataInicio(e.target.value)}
+                className="w-36 h-8 text-xs"
+                placeholder="Data início"
+              />
+              <span className="text-muted-foreground text-xs">até</span>
+              <Input
+                type="date"
+                value={filtroDataFim}
+                onChange={e => setFiltroDataFim(e.target.value)}
+                className="w-36 h-8 text-xs"
+                placeholder="Data fim"
+              />
+              {(filtroDataInicio || filtroDataFim) && (
+                <Button variant="ghost" size="sm" onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }} className="h-8 px-2">
+                  <X className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
+          </div>
           <AtendimentoList
-            atendimentos={atendimentos}
+            atendimentos={atendimentosFiltrados}
             onEdit={handleEdit}
             onDelete={remover}
             onStatusChange={handleStatusChange}
