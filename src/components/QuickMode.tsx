@@ -1,56 +1,89 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Atendimento, TipoAtendimento } from '@/types/atendimento';
+import { Atendimento } from '@/types/atendimento';
 import { formatarHora, calcularDuracao } from '@/lib/atendimento-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TIPO_LABELS } from '@/types/atendimento';
-import { Play, Square, Clock } from 'lucide-react';
+import { useTiposAtendimento } from '@/hooks/use-tipos-atendimento';
+import { useClientes } from '@/hooks/use-clientes';
+import { Play, Square, Clock, Pause, PlayCircle } from 'lucide-react';
 
 interface QuickModeProps {
   onSave: (atendimento: Atendimento) => void;
 }
 
 export function QuickMode({ onSave }: QuickModeProps) {
+  const { tipos } = useTiposAtendimento();
+  const { clientes } = useClientes();
   const [ativo, setAtivo] = useState(false);
+  const [pausado, setPausado] = useState(false);
   const [inicio, setInicio] = useState<Date | null>(null);
   const [cliente, setCliente] = useState('');
-  const [tipo, setTipo] = useState<TipoAtendimento>('SUPORTE');
+  const [tipo, setTipo] = useState(tipos[0]?.id ?? 'SUPORTE');
   const [elapsed, setElapsed] = useState('00:00:00');
+  const [totalPausado, setTotalPausado] = useState(0); // ms acumulado em pausas
+  const [pausaInicio, setPausaInicio] = useState<Date | null>(null);
+  const [descricao, setDescricao] = useState('');
 
   useEffect(() => {
-    if (!ativo || !inicio) return;
+    if (!ativo || !inicio || pausado) return;
     const interval = setInterval(() => {
-      const diff = Date.now() - inicio.getTime();
+      const diff = Date.now() - inicio.getTime() - totalPausado;
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
       setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
     }, 1000);
     return () => clearInterval(interval);
-  }, [ativo, inicio]);
+  }, [ativo, inicio, pausado, totalPausado]);
 
   const iniciar = useCallback(() => {
     setInicio(new Date());
     setAtivo(true);
+    setPausado(false);
+    setTotalPausado(0);
   }, []);
+
+  const pausar = useCallback(() => {
+    setPausado(true);
+    setPausaInicio(new Date());
+  }, []);
+
+  const retomar = useCallback(() => {
+    if (pausaInicio) {
+      setTotalPausado(prev => prev + (Date.now() - pausaInicio.getTime()));
+    }
+    setPausado(false);
+    setPausaInicio(null);
+  }, [pausaInicio]);
 
   const finalizar = useCallback(() => {
     if (!inicio) return;
+    // Se estava pausado, contabilizar pausa final
+    let pausaTotal = totalPausado;
+    if (pausado && pausaInicio) {
+      pausaTotal += Date.now() - pausaInicio.getTime();
+    }
+
     const fim = new Date();
     const horaInicio = formatarHora(inicio);
     const horaFim = formatarHora(fim);
     const now = new Date().toISOString();
 
+    // Calcular duração real descontando pausas
+    const diffMs = fim.getTime() - inicio.getTime() - pausaTotal;
+    const duracaoHoras = Math.max(0, parseFloat((diffMs / 3600000).toFixed(2)));
+
     const atendimento: Atendimento = {
       id: crypto.randomUUID(),
       cliente: cliente.trim() || 'Cliente não informado',
-      descricao: '',
+      descricao: descricao.trim(),
       tipo,
       data: now.split('T')[0],
       hora_inicio: horaInicio,
       hora_fim: horaFim,
-      duracao_horas: calcularDuracao(horaInicio, horaFim),
+      duracao_horas: duracaoHoras,
       status: 'REGISTRADO',
       observacoes: '',
       data_criacao: now,
@@ -59,32 +92,48 @@ export function QuickMode({ onSave }: QuickModeProps) {
 
     onSave(atendimento);
     setAtivo(false);
+    setPausado(false);
     setInicio(null);
     setCliente('');
+    setDescricao('');
     setElapsed('00:00:00');
-  }, [inicio, cliente, tipo, onSave]);
+    setTotalPausado(0);
+    setPausaInicio(null);
+  }, [inicio, cliente, tipo, descricao, onSave, totalPausado, pausado, pausaInicio]);
 
   return (
-    <div className="glass-card p-4">
+    <div className="glass-card p-4 space-y-3">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          {ativo && <span className="w-2 h-2 rounded-full bg-destructive pulse-recording" />}
+          {ativo && !pausado && <span className="w-2 h-2 rounded-full bg-destructive pulse-recording" />}
+          {pausado && <span className="w-2 h-2 rounded-full bg-warning" />}
           <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Modo Rápido</span>
         </div>
 
-        <Input
-          value={cliente}
-          onChange={e => setCliente(e.target.value)}
-          placeholder="Cliente"
-          className="w-40"
-          disabled={ativo}
-        />
+        {clientes.length > 0 ? (
+          <Select value={cliente} onValueChange={setCliente} disabled={ativo}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="Selecione cliente" /></SelectTrigger>
+            <SelectContent>
+              {clientes.map(c => (
+                <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            value={cliente}
+            onChange={e => setCliente(e.target.value)}
+            placeholder="Cliente"
+            className="w-40"
+            disabled={ativo}
+          />
+        )}
 
-        <Select value={tipo} onValueChange={v => setTipo(v as TipoAtendimento)} disabled={ativo}>
+        <Select value={tipo} onValueChange={setTipo} disabled={ativo}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {Object.entries(TIPO_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
+            {tipos.map(t => (
+              <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -93,19 +142,43 @@ export function QuickMode({ onSave }: QuickModeProps) {
           <div className="flex items-center gap-2 font-mono text-lg text-primary font-bold">
             <Clock className="w-4 h-4" />
             {elapsed}
+            {pausado && <span className="text-xs text-warning font-sans">(pausado)</span>}
           </div>
         )}
 
-        {!ativo ? (
-          <Button onClick={iniciar} size="sm" className="gap-1">
-            <Play className="w-3 h-3" /> Iniciar
-          </Button>
-        ) : (
-          <Button onClick={finalizar} variant="destructive" size="sm" className="gap-1">
-            <Square className="w-3 h-3" /> Finalizar
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {!ativo ? (
+            <Button onClick={iniciar} size="sm" className="gap-1">
+              <Play className="w-3 h-3" /> Iniciar
+            </Button>
+          ) : (
+            <>
+              {!pausado ? (
+                <Button onClick={pausar} variant="outline" size="sm" className="gap-1">
+                  <Pause className="w-3 h-3" /> Intervalo
+                </Button>
+              ) : (
+                <Button onClick={retomar} variant="outline" size="sm" className="gap-1">
+                  <PlayCircle className="w-3 h-3" /> Retomar
+                </Button>
+              )}
+              <Button onClick={finalizar} variant="destructive" size="sm" className="gap-1">
+                <Square className="w-3 h-3" /> Finalizar
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+
+      {ativo && (
+        <Textarea
+          value={descricao}
+          onChange={e => setDescricao(e.target.value)}
+          placeholder="Anotações durante o atendimento..."
+          rows={2}
+          className="text-sm"
+        />
+      )}
     </div>
   );
 }
