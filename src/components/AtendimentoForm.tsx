@@ -25,6 +25,13 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
   const [horaFim, setHoraFim] = useState(editando?.hora_fim ?? '');
   const [observacoes, setObservacoes] = useState(editando?.observacoes ?? '');
 
+  useEffect(() => {
+    if (editando) {
+      setCliente(editando.cliente); setTipo(editando.tipo); setDescricao(editando.descricao);
+      setHoraInicio(editando.hora_inicio); setHoraFim(editando.hora_fim); setObservacoes(editando.observacoes);
+    }
+  }, [editando]);
+
   const handleSave = () => {
     if (!cliente.trim() || !horaInicio || !horaFim) {
       toast({ title: 'Campos obrigatórios', description: 'Preencha cliente, hora início e hora fim.', variant: 'destructive' });
