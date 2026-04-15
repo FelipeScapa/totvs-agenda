@@ -1,4 +1,4 @@
-export type TipoAtendimento = 'SUPORTE' | 'AJUSTE' | 'REUNIAO' | 'INVESTIGACAO';
+export type TipoAtendimento = string;
 
 export type StatusAtendimento = 'REGISTRADO' | 'AGUARDANDO_AGENDA' | 'EMAIL_ENVIADO' | 'AGENDA_CRIADA' | 'APONTADO';
 
