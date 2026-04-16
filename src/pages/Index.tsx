@@ -9,6 +9,7 @@ import { TipoManager } from '@/components/TipoManager';
 import { ServicoManager } from '@/components/ServicoManager';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase, Filter } from 'lucide-react';
