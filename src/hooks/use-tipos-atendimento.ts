@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 export interface TipoCustom {
   id: string;
@@ -14,31 +14,41 @@ const DEFAULTS: TipoCustom[] = [
   { id: 'INVESTIGACAO', label: 'Investigação' },
 ];
 
+let listeners: (() => void)[] = [];
+let cache: TipoCustom[] | null = null;
+
 function load(): TipoCustom[] {
+  if (cache) return cache;
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : DEFAULTS;
+    cache = data ? JSON.parse(data) : DEFAULTS;
   } catch {
-    return DEFAULTS;
+    cache = DEFAULTS;
   }
+  return cache!;
 }
 
 function save(tipos: TipoCustom[]) {
+  cache = tipos;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tipos));
+  listeners.forEach(l => l());
+}
+
+function subscribe(cb: () => void) {
+  listeners.push(cb);
+  return () => { listeners = listeners.filter(l => l !== cb); };
 }
 
 export function useTiposAtendimento() {
-  const [tipos, setTipos] = useState<TipoCustom[]>(load);
-
-  useEffect(() => { save(tipos); }, [tipos]);
+  const tipos = useSyncExternalStore(subscribe, load);
 
   const adicionar = useCallback((label: string) => {
     const id = label.trim().toUpperCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    setTipos(prev => [...prev, { id, label: label.trim() }]);
+    save([...load(), { id, label: label.trim() }]);
   }, []);
 
   const remover = useCallback((id: string) => {
-    setTipos(prev => prev.filter(t => t.id !== id));
+    save(load().filter(t => t.id !== id));
   }, []);
 
   return { tipos, adicionar, remover };

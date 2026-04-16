@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 
 interface DashboardCardsProps {
   atendimentos: Atendimento[];
+  ocultarValores: boolean;
+  onToggleOcultar: () => void;
 }
 
-export function DashboardCards({ atendimentos }: DashboardCardsProps) {
+export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar }: DashboardCardsProps) {
   const { servicos } = useServicos();
-  const [mostrarValores, setMostrarValores] = useState(true);
 
   const getValorHora = (a: Atendimento) => {
     if (a.servico_id) {
@@ -38,12 +39,12 @@ export function DashboardCards({ atendimentos }: DashboardCardsProps) {
     };
   }, [atendimentos, servicos]);
 
-  const ocultar = (valor: string) => mostrarValores ? valor : '••••••';
+  const ocultar = (valor: string) => !ocultarValores ? valor : '••••••';
 
   const cards = [
     { label: 'Atendimentos', value: String(stats.total), sub: 'no período filtrado', icon: FileText, color: 'text-foreground' },
     { label: 'Horas totais', value: stats.totalHoras.toFixed(1), sub: 'horas registradas', icon: Clock, color: 'text-primary' },
-    { label: 'Valor total', value: ocultar(`R$ ${stats.valorTotal.toFixed(2)}`), sub: ocultar(`${stats.totalHoras.toFixed(1)}h trabalhadas`), icon: DollarSign, color: 'text-primary', isValor: true },
+    { label: 'Valor total', value: ocultar(`R$ ${stats.valorTotal.toFixed(2)}`), sub: ocultar(`${stats.totalHoras.toFixed(1)}h trabalhadas`), icon: DollarSign, color: 'text-primary' },
     { label: 'Pendentes', value: String(stats.pendentes), sub: 'sem apontamento', icon: Timer, color: 'text-muted-foreground' },
     { label: 'Em alerta', value: String(stats.alertas), sub: '4 dias', icon: AlertTriangle, color: 'text-warning' },
     { label: 'Atrasados', value: String(stats.atrasados), sub: '5+ dias', icon: AlertTriangle, color: 'text-destructive' },
@@ -55,11 +56,11 @@ export function DashboardCards({ atendimentos }: DashboardCardsProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setMostrarValores(!mostrarValores)}
+          onClick={onToggleOcultar}
           className="gap-1 text-xs text-muted-foreground"
         >
-          {mostrarValores ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-          {mostrarValores ? 'Ocultar valores' : 'Mostrar valores'}
+          {!ocultarValores ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+          {!ocultarValores ? 'Ocultar valores' : 'Mostrar valores'}
         </Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
