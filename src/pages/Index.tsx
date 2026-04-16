@@ -11,7 +11,8 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase } from 'lucide-react';
+import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase, Filter } from 'lucide-react';
+import { STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -25,20 +26,24 @@ const Index = () => {
   const [servicoOpen, setServicoOpen] = useState(false);
   const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
   const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
+  const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
 
   const atendimentosFiltrados = useMemo(() => {
-    return atendimentos.filter(a => {
-      if (filtroDataInicio) {
-        const inicio = format(filtroDataInicio, 'yyyy-MM-dd');
-        if (a.data < inicio) return false;
-      }
-      if (filtroDataFim) {
-        const fim = format(filtroDataFim, 'yyyy-MM-dd');
-        if (a.data > fim) return false;
-      }
-      return true;
-    });
-  }, [atendimentos, filtroDataInicio, filtroDataFim]);
+    return atendimentos
+      .filter(a => {
+        if (filtroDataInicio) {
+          const inicio = format(filtroDataInicio, 'yyyy-MM-dd');
+          if (a.data < inicio) return false;
+        }
+        if (filtroDataFim) {
+          const fim = format(filtroDataFim, 'yyyy-MM-dd');
+          if (a.data > fim) return false;
+        }
+        if (filtroStatus !== 'TODOS' && a.status !== filtroStatus) return false;
+        return true;
+      })
+      .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
+  }, [atendimentos, filtroDataInicio, filtroDataFim, filtroStatus]);
 
   const handleEdit = (a: Atendimento) => {
     setEditando(a);
@@ -116,8 +121,20 @@ const Index = () => {
                   <Calendar mode="single" selected={filtroDataFim} onSelect={setFiltroDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
                 </PopoverContent>
               </Popover>
-              {(filtroDataInicio || filtroDataFim) && (
-                <Button variant="ghost" size="sm" onClick={() => { setFiltroDataInicio(undefined); setFiltroDataFim(undefined); }} className="h-8 px-2">
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger className="w-40 h-8 text-xs">
+                  <Filter className="w-3 h-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODOS">Todos os status</SelectItem>
+                  {STATUS_FLOW.map(s => (
+                    <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(filtroDataInicio || filtroDataFim || filtroStatus !== 'TODOS') && (
+                <Button variant="ghost" size="sm" onClick={() => { setFiltroDataInicio(undefined); setFiltroDataFim(undefined); setFiltroStatus('TODOS'); }} className="h-8 px-2">
                   <X className="w-3 h-3" />
                 </Button>
               )}
