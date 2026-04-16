@@ -147,6 +147,7 @@ const Index = () => {
             onEdit={handleEdit}
             onDelete={remover}
             onStatusChange={handleStatusChange}
+            ocultarValores={ocultarValores}
           />
         </div>
       </main>
