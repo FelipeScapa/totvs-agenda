@@ -28,6 +28,7 @@ const Index = () => {
   const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
   const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [ocultarValores, setOcultarValores] = useState(false);
 
   const atendimentosFiltrados = useMemo(() => {
     return atendimentos
@@ -92,7 +93,7 @@ const Index = () => {
 
       <main className="max-w-6xl mx-auto px-6 py-6 space-y-6">
         <QuickMode onSave={adicionar} />
-        <DashboardCards atendimentos={atendimentosFiltrados} />
+        <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} />
         <div>
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
