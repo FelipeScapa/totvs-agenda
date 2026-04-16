@@ -143,10 +143,10 @@ export function QuickMode({ onSave }: QuickModeProps) {
         </Select>
 
         <Select value={servicoId} onValueChange={setServicoId} disabled={ativo}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Serviço" /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Serviço" /></SelectTrigger>
           <SelectContent>
             {servicos.map(s => (
-              <SelectItem key={s.id} value={s.id}>{s.nome} (R${s.valor_hora})</SelectItem>
+              <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>

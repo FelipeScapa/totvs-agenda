@@ -9,14 +9,23 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Edit, Trash2, Copy, FileText, CalendarDays } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+const STATUS_COLORS: Record<string, string> = {
+  REGISTRADO: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  AGUARDANDO_AGENDA: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  EMAIL_ENVIADO: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  AGENDA_CRIADA: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  APONTADO: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+};
+
 interface AtendimentoListProps {
   atendimentos: Atendimento[];
   onEdit: (a: Atendimento) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: Atendimento['status']) => void;
+  ocultarValores?: boolean;
 }
 
-export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange }: AtendimentoListProps) {
+export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange, ocultarValores }: AtendimentoListProps) {
   const { toast } = useToast();
   const { tipos } = useTiposAtendimento();
   const { servicos } = useServicos();
@@ -57,22 +66,31 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
         const prazo = a.status !== 'APONTADO' ? calcularStatusPrazo(a.data) : 'OK';
         const valorHora = getValorHora(a);
         const servico = a.servico_id ? servicos.find(s => s.id === a.servico_id) : null;
+        const statusColor = STATUS_COLORS[a.status] || '';
 
         return (
           <div key={a.id} className="glass-card p-4 flex items-center gap-4 group hover:border-primary/30 transition-colors">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="font-semibold truncate">{a.cliente}</span>
+                <Badge variant="outline" className={statusColor}>
+                  {STATUS_LABELS[a.status] || a.status}
+                </Badge>
                 <Select
                   value={a.status}
                   onValueChange={(v) => onStatusChange(a.id, v as Atendimento['status'])}
                 >
-                  <SelectTrigger className="h-6 text-xs w-auto min-w-[130px] border-border/50 bg-secondary/50">
-                    <SelectValue />
+                  <SelectTrigger className="h-6 text-xs w-auto min-w-[100px] border-border/50 bg-secondary/50">
+                    <SelectValue placeholder="Alterar" />
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_FLOW.map(s => (
-                      <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                      <SelectItem key={s} value={s}>
+                        <span className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[s]?.split(' ')[0] || ''}`} />
+                          {STATUS_LABELS[s]}
+                        </span>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -84,7 +102,9 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
                 <span>{formatarData(a.data)}</span>
                 <span>{a.hora_inicio}–{a.hora_fim}</span>
                 <span className="font-mono">{a.duracao_horas}h</span>
-                <span className="font-mono">R${calcularValor(a.duracao_horas, valorHora).toFixed(2)}</span>
+                <span className="font-mono">
+                  {ocultarValores ? '••••••' : `R$${calcularValor(a.duracao_horas, valorHora).toFixed(2)}`}
+                </span>
                 <span>{tipoLabel(a.tipo)}</span>
                 {servico && <span className="text-xs bg-secondary/50 px-1.5 py-0.5 rounded">{servico.nome}</span>}
               </div>
