@@ -6,10 +6,15 @@ import { AtendimentoList } from '@/components/AtendimentoList';
 import { AtendimentoForm } from '@/components/AtendimentoForm';
 import { ClienteManager } from '@/components/ClienteManager';
 import { TipoManager } from '@/components/TipoManager';
+import { ServicoManager } from '@/components/ServicoManager';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Activity, Users, Tag, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
   const { atendimentos, adicionar, atualizar, remover } = useAtendimentos();
@@ -17,13 +22,20 @@ const Index = () => {
   const [editando, setEditando] = useState<Atendimento | null>(null);
   const [clienteOpen, setClienteOpen] = useState(false);
   const [tipoOpen, setTipoOpen] = useState(false);
-  const [filtroDataInicio, setFiltroDataInicio] = useState('');
-  const [filtroDataFim, setFiltroDataFim] = useState('');
+  const [servicoOpen, setServicoOpen] = useState(false);
+  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
+  const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
 
   const atendimentosFiltrados = useMemo(() => {
     return atendimentos.filter(a => {
-      if (filtroDataInicio && a.data < filtroDataInicio) return false;
-      if (filtroDataFim && a.data > filtroDataFim) return false;
+      if (filtroDataInicio) {
+        const inicio = format(filtroDataInicio, 'yyyy-MM-dd');
+        if (a.data < inicio) return false;
+      }
+      if (filtroDataFim) {
+        const fim = format(filtroDataFim, 'yyyy-MM-dd');
+        if (a.data > fim) return false;
+      }
       return true;
     });
   }, [atendimentos, filtroDataInicio, filtroDataFim]);
@@ -62,6 +74,9 @@ const Index = () => {
             <Button variant="ghost" size="sm" onClick={() => setTipoOpen(true)} className="gap-1">
               <Tag className="w-4 h-4" /> Tipos
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => setServicoOpen(true)} className="gap-1">
+              <Briefcase className="w-4 h-4" /> Serviços
+            </Button>
             <Button size="sm" onClick={() => { setEditando(null); setFormOpen(true); }} className="gap-1">
               <Plus className="w-4 h-4" /> Novo
             </Button>
@@ -71,30 +86,38 @@ const Index = () => {
 
       <main className="max-w-6xl mx-auto px-6 py-6 space-y-6">
         <QuickMode onSave={adicionar} />
-        <DashboardCards atendimentos={atendimentos} />
+        <DashboardCards atendimentos={atendimentosFiltrados} />
         <div>
           <div className="flex items-center gap-3 mb-3 flex-wrap">
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
               Atendimentos ({atendimentosFiltrados.length})
             </h2>
             <div className="flex items-center gap-2 ml-auto">
-              <Input
-                type="date"
-                value={filtroDataInicio}
-                onChange={e => setFiltroDataInicio(e.target.value)}
-                className="w-36 h-8 text-xs"
-                placeholder="Data início"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-36 justify-start text-left text-xs h-8", !filtroDataInicio && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3" />
+                    {filtroDataInicio ? format(filtroDataInicio, "dd/MM/yyyy") : "Data início"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filtroDataInicio} onSelect={setFiltroDataInicio} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
               <span className="text-muted-foreground text-xs">até</span>
-              <Input
-                type="date"
-                value={filtroDataFim}
-                onChange={e => setFiltroDataFim(e.target.value)}
-                className="w-36 h-8 text-xs"
-                placeholder="Data fim"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("w-36 justify-start text-left text-xs h-8", !filtroDataFim && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-1 h-3 w-3" />
+                    {filtroDataFim ? format(filtroDataFim, "dd/MM/yyyy") : "Data fim"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={filtroDataFim} onSelect={setFiltroDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
               {(filtroDataInicio || filtroDataFim) && (
-                <Button variant="ghost" size="sm" onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }} className="h-8 px-2">
+                <Button variant="ghost" size="sm" onClick={() => { setFiltroDataInicio(undefined); setFiltroDataFim(undefined); }} className="h-8 px-2">
                   <X className="w-3 h-3" />
                 </Button>
               )}
@@ -117,6 +140,7 @@ const Index = () => {
       />
       <ClienteManager open={clienteOpen} onOpenChange={setClienteOpen} />
       <TipoManager open={tipoOpen} onOpenChange={setTipoOpen} />
+      <ServicoManager open={servicoOpen} onOpenChange={setServicoOpen} />
     </div>
   );
 };

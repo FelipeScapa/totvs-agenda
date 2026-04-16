@@ -7,9 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useTiposAtendimento } from '@/hooks/use-tipos-atendimento';
 import { useClientes } from '@/hooks/use-clientes';
+import { useServicos } from '@/hooks/use-servicos';
 
 interface AtendimentoFormProps {
   open: boolean;
@@ -22,10 +29,12 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
   const { toast } = useToast();
   const { tipos } = useTiposAtendimento();
   const { clientes } = useClientes();
+  const { servicos } = useServicos();
   const [cliente, setCliente] = useState(editando?.cliente ?? '');
   const [tipo, setTipo] = useState(editando?.tipo ?? (tipos[0]?.id ?? 'SUPORTE'));
+  const [servicoId, setServicoId] = useState(editando?.servico_id ?? (servicos[0]?.id ?? ''));
   const [descricao, setDescricao] = useState(editando?.descricao ?? '');
-  const [data, setData] = useState(editando?.data ?? new Date().toISOString().split('T')[0]);
+  const [data, setData] = useState<Date>(editando?.data ? new Date(editando.data + 'T00:00:00') : new Date());
   const [horaInicio, setHoraInicio] = useState(editando?.hora_inicio ?? '');
   const [horaFim, setHoraFim] = useState(editando?.hora_fim ?? '');
   const [intervaloInicio, setIntervaloInicio] = useState('');
@@ -36,8 +45,9 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
     if (editando) {
       setCliente(editando.cliente);
       setTipo(editando.tipo);
+      setServicoId(editando.servico_id ?? (servicos[0]?.id ?? ''));
       setDescricao(editando.descricao);
-      setData(editando.data);
+      setData(new Date(editando.data + 'T00:00:00'));
       setHoraInicio(editando.hora_inicio);
       setHoraFim(editando.hora_fim);
       setObservacoes(editando.observacoes);
@@ -52,7 +62,6 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       return;
     }
     let duracao = calcularDuracao(horaInicio, horaFim);
-    // Descontar intervalo se preenchido
     if (intervaloInicio && intervaloFim) {
       const duracaoIntervalo = calcularDuracao(intervaloInicio, intervaloFim);
       duracao = Math.max(0, parseFloat((duracao - duracaoIntervalo).toFixed(2)));
@@ -62,12 +71,14 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       return;
     }
     const now = new Date().toISOString();
+    const dataStr = format(data, 'yyyy-MM-dd');
     const atendimento: Atendimento = {
       id: editando?.id ?? crypto.randomUUID(),
       cliente: cliente.trim(),
       descricao: descricao.trim(),
       tipo,
-      data,
+      servico_id: servicoId || undefined,
+      data: dataStr,
       hora_inicio: horaInicio,
       hora_fim: horaFim,
       duracao_horas: duracao,
@@ -84,8 +95,9 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
   const resetForm = () => {
     setCliente('');
     setTipo(tipos[0]?.id ?? 'SUPORTE');
+    setServicoId(servicos[0]?.id ?? '');
     setDescricao('');
-    setData(new Date().toISOString().split('T')[0]);
+    setData(new Date());
     setHoraInicio('');
     setHoraFim('');
     setIntervaloInicio('');
@@ -115,20 +127,50 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
               <Input value={cliente} onChange={e => setCliente(e.target.value)} placeholder="Nome do cliente" />
             )}
           </div>
-          <div>
-            <Label>Tipo</Label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {tipos.map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={tipo} onValueChange={setTipo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {tipos.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Serviço</Label>
+              <Select value={servicoId} onValueChange={setServicoId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {servicos.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.nome} (R${s.valor_hora})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div>
             <Label>Data *</Label>
-            <Input type="date" value={data} onChange={e => setData(e.target.value)} />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !data && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(data, "dd/MM/yyyy", { locale: ptBR })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={data}
+                  onSelect={(d) => d && setData(d)}
+                  locale={ptBR}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label>Descrição</Label>

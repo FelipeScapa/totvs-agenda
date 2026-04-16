@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { Atendimento } from '@/types/atendimento';
 import { formatarHora, calcularDuracao } from '@/lib/atendimento-utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTiposAtendimento } from '@/hooks/use-tipos-atendimento';
 import { useClientes } from '@/hooks/use-clientes';
+import { useServicos } from '@/hooks/use-servicos';
 import { Play, Square, Clock, Pause, PlayCircle } from 'lucide-react';
 
 interface QuickModeProps {
@@ -16,15 +16,26 @@ interface QuickModeProps {
 export function QuickMode({ onSave }: QuickModeProps) {
   const { tipos } = useTiposAtendimento();
   const { clientes } = useClientes();
+  const { servicos } = useServicos();
   const [ativo, setAtivo] = useState(false);
   const [pausado, setPausado] = useState(false);
   const [inicio, setInicio] = useState<Date | null>(null);
   const [cliente, setCliente] = useState('');
-  const [tipo, setTipo] = useState(tipos[0]?.id ?? 'SUPORTE');
+  const [tipo, setTipo] = useState('');
+  const [servicoId, setServicoId] = useState('');
   const [elapsed, setElapsed] = useState('00:00:00');
-  const [totalPausado, setTotalPausado] = useState(0); // ms acumulado em pausas
+  const [totalPausado, setTotalPausado] = useState(0);
   const [pausaInicio, setPausaInicio] = useState<Date | null>(null);
   const [descricao, setDescricao] = useState('');
+
+  // Set defaults when data loads
+  useEffect(() => {
+    if (!tipo && tipos.length > 0) setTipo(tipos[0].id);
+  }, [tipos, tipo]);
+
+  useEffect(() => {
+    if (!servicoId && servicos.length > 0) setServicoId(servicos[0].id);
+  }, [servicos, servicoId]);
 
   useEffect(() => {
     if (!ativo || !inicio || pausado) return;
@@ -60,7 +71,6 @@ export function QuickMode({ onSave }: QuickModeProps) {
 
   const finalizar = useCallback(() => {
     if (!inicio) return;
-    // Se estava pausado, contabilizar pausa final
     let pausaTotal = totalPausado;
     if (pausado && pausaInicio) {
       pausaTotal += Date.now() - pausaInicio.getTime();
@@ -71,15 +81,15 @@ export function QuickMode({ onSave }: QuickModeProps) {
     const horaFim = formatarHora(fim);
     const now = new Date().toISOString();
 
-    // Calcular duração real descontando pausas
     const diffMs = fim.getTime() - inicio.getTime() - pausaTotal;
     const duracaoHoras = Math.max(0, parseFloat((diffMs / 3600000).toFixed(2)));
 
     const atendimento: Atendimento = {
       id: crypto.randomUUID(),
-      cliente: cliente.trim() || 'Cliente não informado',
+      cliente: cliente || 'Cliente não informado',
       descricao: descricao.trim(),
-      tipo,
+      tipo: tipo || 'SUPORTE',
+      servico_id: servicoId || undefined,
       data: now.split('T')[0],
       hora_inicio: horaInicio,
       hora_fim: horaFim,
@@ -99,7 +109,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
     setElapsed('00:00:00');
     setTotalPausado(0);
     setPausaInicio(null);
-  }, [inicio, cliente, tipo, descricao, onSave, totalPausado, pausado, pausaInicio]);
+  }, [inicio, cliente, tipo, servicoId, descricao, onSave, totalPausado, pausado, pausaInicio]);
 
   return (
     <div className="glass-card p-4 space-y-3">
@@ -120,20 +130,23 @@ export function QuickMode({ onSave }: QuickModeProps) {
             </SelectContent>
           </Select>
         ) : (
-          <Input
-            value={cliente}
-            onChange={e => setCliente(e.target.value)}
-            placeholder="Cliente"
-            className="w-40"
-            disabled={ativo}
-          />
+          <span className="text-xs text-muted-foreground italic">Cadastre clientes primeiro</span>
         )}
 
         <Select value={tipo} onValueChange={setTipo} disabled={ativo}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             {tipos.map(t => (
               <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={servicoId} onValueChange={setServicoId} disabled={ativo}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Serviço" /></SelectTrigger>
+          <SelectContent>
+            {servicos.map(s => (
+              <SelectItem key={s.id} value={s.id}>{s.nome} (R${s.valor_hora})</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -148,7 +161,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
 
         <div className="flex items-center gap-1">
           {!ativo ? (
-            <Button onClick={iniciar} size="sm" className="gap-1">
+            <Button onClick={iniciar} size="sm" className="gap-1" disabled={clientes.length > 0 && !cliente}>
               <Play className="w-3 h-3" /> Iniciar
             </Button>
           ) : (

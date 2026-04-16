@@ -9,6 +9,7 @@ export interface Atendimento {
   cliente: string;
   descricao: string;
   tipo: TipoAtendimento;
+  servico_id?: string;
   data: string;
   hora_inicio: string;
   hora_fim: string;
