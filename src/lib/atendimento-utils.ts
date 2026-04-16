@@ -7,8 +7,8 @@ export function calcularDuracao(horaInicio: string, horaFim: string): number {
   return Math.max(0, parseFloat((diff / 60).toFixed(2)));
 }
 
-export function calcularValor(duracaoHoras: number): number {
-  return duracaoHoras * VALOR_HORA;
+export function calcularValor(duracaoHoras: number, valorHora?: number): number {
+  return duracaoHoras * (valorHora ?? VALOR_HORA);
 }
 
 export function calcularStatusPrazo(dataAtendimento: string): StatusPrazo {
@@ -35,6 +35,14 @@ Detalhes:
 ${a.observacoes || '(sem observações)'}
 
 Tempo total: ${a.duracao_horas} horas`;
+}
+
+export function gerarTextoAgenda(a: Atendimento): string {
+  const dataFormatada = formatarData(a.data);
+  return `${dataFormatada} - ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)
+Cliente: ${a.cliente}
+Tipo: ${a.tipo}
+${a.descricao}`;
 }
 
 export function formatarHora(date: Date): string {

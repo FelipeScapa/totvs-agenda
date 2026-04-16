@@ -1,10 +1,12 @@
 import { Atendimento, STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
-import { calcularStatusPrazo, calcularValor, formatarData, gerarTextoOS } from '@/lib/atendimento-utils';
+import { calcularStatusPrazo, calcularValor, formatarData, gerarTextoOS, gerarTextoAgenda } from '@/lib/atendimento-utils';
 import { useTiposAtendimento } from '@/hooks/use-tipos-atendimento';
+import { useServicos } from '@/hooks/use-servicos';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, Trash2, Copy } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Edit, Trash2, Copy, FileText, CalendarDays } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AtendimentoListProps {
@@ -17,12 +19,21 @@ interface AtendimentoListProps {
 export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange }: AtendimentoListProps) {
   const { toast } = useToast();
   const { tipos } = useTiposAtendimento();
+  const { servicos } = useServicos();
 
   const tipoLabel = (id: string) => tipos.find(t => t.id === id)?.label ?? id;
 
-  const copiarOS = (a: Atendimento) => {
-    navigator.clipboard.writeText(gerarTextoOS(a));
-    toast({ title: 'Texto copiado!', description: 'Texto da OS copiado para a área de transferência.' });
+  const getValorHora = (a: Atendimento) => {
+    if (a.servico_id) {
+      const s = servicos.find(s => s.id === a.servico_id);
+      if (s) return s.valor_hora;
+    }
+    return 26;
+  };
+
+  const copiar = (texto: string, label: string) => {
+    navigator.clipboard.writeText(texto);
+    toast({ title: 'Copiado!', description: `Texto ${label} copiado para a área de transferência.` });
   };
 
   const prazoColor = (prazo: string) => {
@@ -44,6 +55,8 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
     <div className="space-y-2">
       {atendimentos.map(a => {
         const prazo = a.status !== 'APONTADO' ? calcularStatusPrazo(a.data) : 'OK';
+        const valorHora = getValorHora(a);
+        const servico = a.servico_id ? servicos.find(s => s.id === a.servico_id) : null;
 
         return (
           <div key={a.id} className="glass-card p-4 flex items-center gap-4 group hover:border-primary/30 transition-colors">
@@ -67,20 +80,33 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
                   <Badge variant="outline" className={prazoColor(prazo)}>{prazo}</Badge>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                 <span>{formatarData(a.data)}</span>
                 <span>{a.hora_inicio}–{a.hora_fim}</span>
                 <span className="font-mono">{a.duracao_horas}h</span>
-                <span className="font-mono">R${calcularValor(a.duracao_horas).toFixed(2)}</span>
+                <span className="font-mono">R${calcularValor(a.duracao_horas, valorHora).toFixed(2)}</span>
                 <span>{tipoLabel(a.tipo)}</span>
+                {servico && <span className="text-xs bg-secondary/50 px-1.5 py-0.5 rounded">{servico.nome}</span>}
               </div>
               {a.descricao && <p className="text-sm text-muted-foreground mt-1 truncate">{a.descricao}</p>}
             </div>
 
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => copiarOS(a)} title="Gerar texto OS">
-                <Copy className="w-4 h-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" title="Copiar">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => copiar(gerarTextoOS(a), 'da OS')}>
+                    <FileText className="w-4 h-4 mr-2" /> Copiar OS
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => copiar(gerarTextoAgenda(a), 'da Agenda')}>
+                    <CalendarDays className="w-4 h-4 mr-2" /> Copiar Agenda
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="ghost" size="sm" onClick={() => onEdit(a)}>
                 <Edit className="w-4 h-4" />
               </Button>
