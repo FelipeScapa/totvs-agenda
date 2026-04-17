@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Atendimento, STATUS_LABELS } from '@/types/atendimento';
+import { Atendimento } from '@/types/atendimento';
 import { calcularDuracao } from '@/lib/atendimento-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -30,16 +31,17 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
   const { tipos } = useTiposAtendimento();
   const { clientes } = useClientes();
   const { servicos } = useServicos();
-  const [cliente, setCliente] = useState(editando?.cliente ?? '');
-  const [tipo, setTipo] = useState(editando?.tipo ?? (tipos[0]?.id ?? 'SUPORTE'));
-  const [servicoId, setServicoId] = useState(editando?.servico_id ?? (servicos[0]?.id ?? ''));
-  const [descricao, setDescricao] = useState(editando?.descricao ?? '');
-  const [data, setData] = useState<Date>(editando?.data ? new Date(editando.data + 'T00:00:00') : new Date());
-  const [horaInicio, setHoraInicio] = useState(editando?.hora_inicio ?? '');
-  const [horaFim, setHoraFim] = useState(editando?.hora_fim ?? '');
-  const [intervaloInicio, setIntervaloInicio] = useState('');
-  const [intervaloFim, setIntervaloFim] = useState('');
-  const [observacoes, setObservacoes] = useState(editando?.observacoes ?? '');
+  const [cliente, setCliente] = useState('');
+  const [tipo, setTipo] = useState(tipos[0]?.id ?? 'SUPORTE');
+  const [servicoId, setServicoId] = useState(servicos[0]?.id ?? '');
+  const [descricao, setDescricao] = useState('');
+  const [data, setData] = useState<Date>(new Date());
+  const [horaInicio, setHoraInicio] = useState('');
+  const [horaFim, setHoraFim] = useState('');
+  const [temIntervalo, setTemIntervalo] = useState(false);
+  const [intervaloInicio, setIntervaloInicio] = useState('12:00');
+  const [intervaloFim, setIntervaloFim] = useState('13:30');
+  const [observacoes, setObservacoes] = useState('');
 
   useEffect(() => {
     if (editando) {
@@ -51,8 +53,9 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       setHoraInicio(editando.hora_inicio);
       setHoraFim(editando.hora_fim);
       setObservacoes(editando.observacoes);
-      setIntervaloInicio('');
-      setIntervaloFim('');
+      setTemIntervalo(false);
+      setIntervaloInicio('12:00');
+      setIntervaloFim('13:30');
     }
   }, [editando]);
 
@@ -62,7 +65,7 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       return;
     }
     let duracao = calcularDuracao(horaInicio, horaFim);
-    if (intervaloInicio && intervaloFim) {
+    if (temIntervalo && intervaloInicio && intervaloFim) {
       const duracaoIntervalo = calcularDuracao(intervaloInicio, intervaloFim);
       duracao = Math.max(0, parseFloat((duracao - duracaoIntervalo).toFixed(2)));
     }
@@ -100,14 +103,15 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
     setData(new Date());
     setHoraInicio('');
     setHoraFim('');
-    setIntervaloInicio('');
-    setIntervaloFim('');
+    setTemIntervalo(false);
+    setIntervaloInicio('12:00');
+    setIntervaloFim('13:30');
     setObservacoes('');
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
-      <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editando ? 'Editar' : 'Novo'} Atendimento</DialogTitle>
         </DialogHeader>
@@ -145,7 +149,7 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {servicos.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.nome} (R${s.valor_hora})</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -173,8 +177,8 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
             </Popover>
           </div>
           <div>
-            <Label>Descrição</Label>
-            <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Resumo rápido" />
+            <Label>Descrição <span className="text-xs text-muted-foreground">(será usada na OS do TOTVS)</span></Label>
+            <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição detalhada da atividade" rows={4} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -186,19 +190,27 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
               <Input type="time" value={horaFim} onChange={e => setHoraFim(e.target.value)} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Intervalo início</Label>
-              <Input type="time" value={intervaloInicio} onChange={e => setIntervaloInicio(e.target.value)} />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox id="tem-intervalo" checked={temIntervalo} onCheckedChange={(v) => setTemIntervalo(!!v)} />
+              <Label htmlFor="tem-intervalo" className="cursor-pointer">Teve intervalo</Label>
             </div>
-            <div>
-              <Label>Intervalo fim</Label>
-              <Input type="time" value={intervaloFim} onChange={e => setIntervaloFim(e.target.value)} />
-            </div>
+            {temIntervalo && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Intervalo início</Label>
+                  <Input type="time" value={intervaloInicio} onChange={e => setIntervaloInicio(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Intervalo fim</Label>
+                  <Input type="time" value={intervaloFim} onChange={e => setIntervaloFim(e.target.value)} />
+                </div>
+              </div>
+            )}
           </div>
           <div>
-            <Label>Observações</Label>
-            <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Detalhes opcionais" rows={3} />
+            <Label>Observações <span className="text-xs text-muted-foreground">(uso pessoal)</span></Label>
+            <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Anotações pessoais" rows={3} />
           </div>
           <Button onClick={handleSave} className="w-full">Salvar</Button>
         </div>
