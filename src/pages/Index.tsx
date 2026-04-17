@@ -7,19 +7,37 @@ import { AtendimentoForm } from '@/components/AtendimentoForm';
 import { ClienteManager } from '@/components/ClienteManager';
 import { TipoManager } from '@/components/TipoManager';
 import { ServicoManager } from '@/components/ServicoManager';
+import { PendenciasView } from '@/components/PendenciasView';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase, Filter } from 'lucide-react';
+import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase, Filter, Copy, ListTodo } from 'lucide-react';
 import { STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useClientes } from '@/hooks/use-clientes';
+import { useServicos } from '@/hooks/use-servicos';
+import { useToast } from '@/hooks/use-toast';
+import { gerarTextoAgenda } from '@/lib/atendimento-utils';
+
+const STATUS_DOT: Record<string, string> = {
+  REGISTRADO: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  AGUARDANDO_AGENDA: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  EMAIL_ENVIADO: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  AGENDA_CRIADA: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  APONTADO: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+};
 
 const Index = () => {
   const { atendimentos, adicionar, atualizar, remover } = useAtendimentos();
+  const { clientes } = useClientes();
+  const { servicos } = useServicos();
+  const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [editando, setEditando] = useState<Atendimento | null>(null);
   const [clienteOpen, setClienteOpen] = useState(false);
@@ -28,6 +46,8 @@ const Index = () => {
   const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
   const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [filtroCliente, setFiltroCliente] = useState<string>('TODOS');
+  const [filtroServico, setFiltroServico] = useState<string>('TODOS');
   const [ocultarValores, setOcultarValores] = useState(false);
 
   const atendimentosFiltrados = useMemo(() => {
@@ -42,10 +62,19 @@ const Index = () => {
           if (a.data > fim) return false;
         }
         if (filtroStatus !== 'TODOS' && a.status !== filtroStatus) return false;
+        if (filtroCliente !== 'TODOS' && a.cliente !== filtroCliente) return false;
+        if (filtroServico !== 'TODOS' && a.servico_id !== filtroServico) return false;
         return true;
       })
       .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
-  }, [atendimentos, filtroDataInicio, filtroDataFim, filtroStatus]);
+  }, [atendimentos, filtroDataInicio, filtroDataFim, filtroStatus, filtroCliente, filtroServico]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    STATUS_FLOW.forEach(s => counts[s] = 0);
+    atendimentosFiltrados.forEach(a => { counts[a.status] = (counts[a.status] ?? 0) + 1; });
+    return counts;
+  }, [atendimentosFiltrados]);
 
   const handleEdit = (a: Atendimento) => {
     setEditando(a);
@@ -61,9 +90,38 @@ const Index = () => {
     setEditando(null);
   };
 
+  const handleDuplicate = (a: Atendimento) => {
+    const now = new Date().toISOString();
+    adicionar({
+      ...a,
+      id: crypto.randomUUID(),
+      status: 'REGISTRADO',
+      data_criacao: now,
+      data_atualizacao: now,
+    });
+    toast({ title: 'Duplicado!', description: 'Atendimento duplicado com sucesso.' });
+  };
+
   const handleStatusChange = (id: string, status: Atendimento['status']) => {
     atualizar(id, { status });
   };
+
+  const copiarTudoAgenda = () => {
+    if (atendimentosFiltrados.length === 0) {
+      toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
+      return;
+    }
+    const texto = atendimentosFiltrados.map(gerarTextoAgenda).join('\n\n');
+    navigator.clipboard.writeText(texto);
+    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas copiadas.` });
+  };
+
+  const limparFiltros = () => {
+    setFiltroDataInicio(undefined); setFiltroDataFim(undefined);
+    setFiltroStatus('TODOS'); setFiltroCliente('TODOS'); setFiltroServico('TODOS');
+  };
+
+  const temFiltro = filtroDataInicio || filtroDataFim || filtroStatus !== 'TODOS' || filtroCliente !== 'TODOS' || filtroServico !== 'TODOS';
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,64 +150,118 @@ const Index = () => {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-6 space-y-6">
-        <QuickMode onSave={adicionar} />
-        <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} />
-        <div>
-          <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Atendimentos ({atendimentosFiltrados.length})
-            </h2>
-            <div className="flex items-center gap-2 ml-auto">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("w-36 justify-start text-left text-xs h-8", !filtroDataInicio && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-1 h-3 w-3" />
-                    {filtroDataInicio ? format(filtroDataInicio, "dd/MM/yyyy") : "Data início"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={filtroDataInicio} onSelect={setFiltroDataInicio} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
-                </PopoverContent>
-              </Popover>
-              <span className="text-muted-foreground text-xs">até</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className={cn("w-36 justify-start text-left text-xs h-8", !filtroDataFim && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-1 h-3 w-3" />
-                    {filtroDataFim ? format(filtroDataFim, "dd/MM/yyyy") : "Data fim"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={filtroDataFim} onSelect={setFiltroDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
-                </PopoverContent>
-              </Popover>
-              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                <SelectTrigger className="w-40 h-8 text-xs">
-                  <Filter className="w-3 h-3 mr-1" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TODOS">Todos os status</SelectItem>
-                  {STATUS_FLOW.map(s => (
-                    <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {(filtroDataInicio || filtroDataFim || filtroStatus !== 'TODOS') && (
-                <Button variant="ghost" size="sm" onClick={() => { setFiltroDataInicio(undefined); setFiltroDataFim(undefined); setFiltroStatus('TODOS'); }} className="h-8 px-2">
-                  <X className="w-3 h-3" />
-                </Button>
-              )}
+        <Tabs defaultValue="atendimentos">
+          <TabsList>
+            <TabsTrigger value="atendimentos" className="gap-1"><Activity className="w-4 h-4" /> Atendimentos</TabsTrigger>
+            <TabsTrigger value="pendencias" className="gap-1"><ListTodo className="w-4 h-4" /> Pendências</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="atendimentos" className="space-y-6">
+            <QuickMode onSave={adicionar} />
+            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} />
+
+            {/* Totalizador de status */}
+            <div className="flex flex-wrap gap-2">
+              {STATUS_FLOW.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFiltroStatus(filtroStatus === s ? 'TODOS' : s)}
+                  className={cn(
+                    "glass-card px-3 py-2 flex items-center gap-2 transition-all hover:scale-[1.02]",
+                    filtroStatus === s && 'ring-2 ring-primary'
+                  )}
+                >
+                  <Badge variant="outline" className={cn("text-xs", STATUS_DOT[s])}>
+                    {STATUS_LABELS[s]}
+                  </Badge>
+                  <span className="font-bold text-lg">{statusCounts[s]}</span>
+                </button>
+              ))}
             </div>
-          </div>
-          <AtendimentoList
-            atendimentos={atendimentosFiltrados}
-            onEdit={handleEdit}
-            onDelete={remover}
-            onStatusChange={handleStatusChange}
-            ocultarValores={ocultarValores}
-          />
-        </div>
+
+            <div>
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  Atendimentos ({atendimentosFiltrados.length})
+                </h2>
+                <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1 h-8 text-xs">
+                  <Copy className="w-3 h-3" /> Copiar agendas filtradas
+                </Button>
+                <div className="flex items-center gap-2 ml-auto flex-wrap">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("w-32 justify-start text-left text-xs h-8", !filtroDataInicio && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-1 h-3 w-3" />
+                        {filtroDataInicio ? format(filtroDataInicio, "dd/MM/yyyy") : "Início"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={filtroDataInicio} onSelect={setFiltroDataInicio} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-muted-foreground text-xs">até</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className={cn("w-32 justify-start text-left text-xs h-8", !filtroDataFim && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-1 h-3 w-3" />
+                        {filtroDataFim ? format(filtroDataFim, "dd/MM/yyyy") : "Fim"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={filtroDataFim} onSelect={setFiltroDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    </PopoverContent>
+                  </Popover>
+                  <Select value={filtroCliente} onValueChange={setFiltroCliente}>
+                    <SelectTrigger className="w-40 h-8 text-xs">
+                      <Filter className="w-3 h-3 mr-1" /><SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TODOS">Todos clientes</SelectItem>
+                      {clientes.map(c => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filtroServico} onValueChange={setFiltroServico}>
+                    <SelectTrigger className="w-36 h-8 text-xs">
+                      <Filter className="w-3 h-3 mr-1" /><SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TODOS">Todos serviços</SelectItem>
+                      {servicos.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger className="w-40 h-8 text-xs">
+                      <Filter className="w-3 h-3 mr-1" /><SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TODOS">Todos status</SelectItem>
+                      {STATUS_FLOW.map(s => (
+                        <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {temFiltro && (
+                    <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-8 px-2">
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <AtendimentoList
+                atendimentos={atendimentosFiltrados}
+                onEdit={handleEdit}
+                onDelete={remover}
+                onStatusChange={handleStatusChange}
+                onDuplicate={handleDuplicate}
+                ocultarValores={ocultarValores}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pendencias">
+            <PendenciasView />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <AtendimentoForm
