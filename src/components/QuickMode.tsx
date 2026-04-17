@@ -151,8 +151,11 @@ export function QuickMode({ onSave }: QuickModeProps) {
           </SelectContent>
         </Select>
 
-        {ativo && (
-          <div className="flex items-center gap-2 font-mono text-lg text-primary font-bold">
+        {ativo && inicio && (
+          <div className="flex items-center gap-3 font-mono text-lg text-primary font-bold">
+            <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Início</span>
+            <span className="text-base">{formatarHora(inicio)}</span>
+            <span className="text-muted-foreground">·</span>
             <Clock className="w-4 h-4" />
             {elapsed}
             {pausado && <span className="text-xs text-warning font-sans">(pausado)</span>}
