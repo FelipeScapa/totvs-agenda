@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Pendencia, usePendencias } from '@/hooks/use-pendencias';
 import { useClientes } from '@/hooks/use-clientes';
 import { Button } from '@/components/ui/button';
@@ -158,17 +158,20 @@ function PendenciaForm({
   const [status, setStatus] = useState<'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA'>('ABERTA');
   const [prazo, setPrazo] = useState<Date | undefined>();
 
-  // reset on open
-  useState(() => {});
-  if (open && editando && cliente !== editando.cliente && titulo !== editando.titulo) {
-    // simple sync when opening for edit
-    setCliente(editando.cliente);
-    setTitulo(editando.titulo);
-    setDescricao(editando.descricao);
-    setPrioridade(editando.prioridade);
-    setStatus(editando.status);
-    setPrazo(editando.prazo ? new Date(editando.prazo + 'T00:00:00') : undefined);
-  }
+  useEffect(() => {
+    if (!open) return;
+    if (editando) {
+      setCliente(editando.cliente);
+      setTitulo(editando.titulo);
+      setDescricao(editando.descricao);
+      setPrioridade(editando.prioridade);
+      setStatus(editando.status);
+      setPrazo(editando.prazo ? new Date(editando.prazo + 'T00:00:00') : undefined);
+    } else {
+      setCliente(''); setTitulo(''); setDescricao('');
+      setPrioridade('MEDIA'); setStatus('ABERTA'); setPrazo(undefined);
+    }
+  }, [open, editando]);
 
   const handleSave = () => {
     if (!cliente || !titulo.trim()) return;
