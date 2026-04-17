@@ -40,9 +40,32 @@ Tempo total: ${a.duracao_horas} horas`;
 export function gerarTextoAgenda(a: Atendimento): string {
   const dataFormatada = formatarData(a.data);
   return `${dataFormatada} - ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)
-Cliente: ${a.cliente}
-Tipo: ${a.tipo}
-${a.descricao}`;
+Cliente: ${a.cliente}`;
+}
+
+export function diasRestantesPrazo(dataAtendimento: string): number {
+  // positivo = ainda faltam X dias; 0 = hoje é o último; negativo = atrasado em |X| dias
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const data = new Date(dataAtendimento + 'T00:00:00');
+  const diffMs = hoje.getTime() - data.getTime();
+  const diasPassados = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  // regra: prazo é 5 dias após a data
+  return 5 - diasPassados;
+}
+
+export function textoPrazo(dataAtendimento: string): string {
+  const d = diasRestantesPrazo(dataAtendimento);
+  if (d > 1) return `Faltam ${d} dias`;
+  if (d === 1) return 'Falta 1 dia';
+  if (d === 0) return 'Vence hoje';
+  if (d === -1) return 'Atrasado 1 dia';
+  return `Atrasado ${Math.abs(d)} dias`;
+}
+
+export function conflitaAgenda(a: Atendimento, b: Atendimento): boolean {
+  if (a.id === b.id || a.data !== b.data) return false;
+  return a.hora_inicio < b.hora_fim && b.hora_inicio < a.hora_fim;
 }
 
 export function formatarHora(date: Date): string {
