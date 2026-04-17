@@ -1,12 +1,12 @@
 import { Atendimento, STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
-import { calcularStatusPrazo, calcularValor, formatarData, gerarTextoOS, gerarTextoAgenda } from '@/lib/atendimento-utils';
+import { diasRestantesPrazo, textoPrazo, calcularValor, formatarData, gerarTextoOS, gerarTextoAgenda, conflitaAgenda } from '@/lib/atendimento-utils';
 import { useTiposAtendimento } from '@/hooks/use-tipos-atendimento';
 import { useServicos } from '@/hooks/use-servicos';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Trash2, Copy, FileText, CalendarDays } from 'lucide-react';
+import { Edit, Trash2, Copy, FileText, CalendarDays, CopyPlus, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -22,10 +22,11 @@ interface AtendimentoListProps {
   onEdit: (a: Atendimento) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: Atendimento['status']) => void;
+  onDuplicate: (a: Atendimento) => void;
   ocultarValores?: boolean;
 }
 
-export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange, ocultarValores }: AtendimentoListProps) {
+export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange, onDuplicate, ocultarValores }: AtendimentoListProps) {
   const { toast } = useToast();
   const { tipos } = useTiposAtendimento();
   const { servicos } = useServicos();
@@ -42,12 +43,13 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
 
   const copiar = (texto: string, label: string) => {
     navigator.clipboard.writeText(texto);
-    toast({ title: 'Copiado!', description: `Texto ${label} copiado para a área de transferência.` });
+    toast({ title: 'Copiado!', description: `${label} copiado para a área de transferência.` });
   };
 
-  const prazoColor = (prazo: string) => {
-    if (prazo === 'ATRASADO') return 'bg-destructive/20 text-destructive border-destructive/30';
-    if (prazo === 'ALERTA') return 'bg-warning/20 text-warning border-warning/30';
+  const prazoBadgeColor = (dias: number) => {
+    if (dias < 0) return 'bg-destructive/20 text-destructive border-destructive/30';
+    if (dias <= 1) return 'bg-warning/20 text-warning border-warning/30';
+    if (dias <= 3) return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
     return 'bg-success/20 text-success border-success/30';
   };
 
@@ -63,10 +65,11 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
   return (
     <div className="space-y-2">
       {atendimentos.map(a => {
-        const prazo = a.status !== 'APONTADO' ? calcularStatusPrazo(a.data) : 'OK';
+        const dias = diasRestantesPrazo(a.data);
         const valorHora = getValorHora(a);
         const servico = a.servico_id ? servicos.find(s => s.id === a.servico_id) : null;
         const statusColor = STATUS_COLORS[a.status] || '';
+        const conflito = atendimentos.some(b => conflitaAgenda(a, b));
 
         return (
           <div key={a.id} className="glass-card p-4 flex items-center gap-4 group hover:border-primary/30 transition-colors">
@@ -95,7 +98,12 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
                   </SelectContent>
                 </Select>
                 {a.status !== 'APONTADO' && (
-                  <Badge variant="outline" className={prazoColor(prazo)}>{prazo}</Badge>
+                  <Badge variant="outline" className={prazoBadgeColor(dias)}>{textoPrazo(a.data)}</Badge>
+                )}
+                {conflito && (
+                  <Badge variant="outline" className="bg-destructive/20 text-destructive border-destructive/30 gap-1">
+                    <AlertCircle className="w-3 h-3" /> Conflito de horário
+                  </Badge>
                 )}
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
@@ -119,14 +127,17 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => copiar(gerarTextoOS(a), 'da OS')}>
+                  <DropdownMenuItem onClick={() => copiar(gerarTextoOS(a), 'Texto da OS')}>
                     <FileText className="w-4 h-4 mr-2" /> Copiar OS
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => copiar(gerarTextoAgenda(a), 'da Agenda')}>
+                  <DropdownMenuItem onClick={() => copiar(gerarTextoAgenda(a), 'Texto da Agenda')}>
                     <CalendarDays className="w-4 h-4 mr-2" /> Copiar Agenda
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button variant="ghost" size="sm" onClick={() => onDuplicate(a)} title="Duplicar">
+                <CopyPlus className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => onEdit(a)}>
                 <Edit className="w-4 h-4" />
               </Button>
