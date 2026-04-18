@@ -227,7 +227,13 @@ export function QuickMode({ onSave }: QuickModeProps) {
             <span className="text-muted-foreground">·</span>
             <Clock className="w-4 h-4" />
             {elapsed}
-            {pausado && <span className="text-xs text-warning font-sans">(pausado)</span>}
+            {pausado && (
+              <span className="flex items-center gap-1 text-warning text-base">
+                <Pause className="w-4 h-4" />
+                <span className="font-mono">{pausaElapsed}</span>
+                <span className="text-xs font-sans">pausa</span>
+              </span>
+            )}
           </div>
         )}
 
