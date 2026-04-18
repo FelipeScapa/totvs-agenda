@@ -8,14 +8,15 @@ import { ClienteManager } from '@/components/ClienteManager';
 import { TipoManager } from '@/components/TipoManager';
 import { ServicoManager } from '@/components/ServicoManager';
 import { PendenciasView } from '@/components/PendenciasView';
+import { CalendarView } from '@/components/CalendarView';
+import { MultiSelect } from '@/components/MultiSelect';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase, Filter, Copy, ListTodo } from 'lucide-react';
+import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase, Copy, ListTodo, CalendarRange } from 'lucide-react';
 import { STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -45,9 +46,9 @@ const Index = () => {
   const [servicoOpen, setServicoOpen] = useState(false);
   const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
   const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
-  const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
-  const [filtroCliente, setFiltroCliente] = useState<string>('TODOS');
-  const [filtroServico, setFiltroServico] = useState<string>('TODOS');
+  const [filtroStatus, setFiltroStatus] = useState<string[]>([]);
+  const [filtroClientes, setFiltroClientes] = useState<string[]>([]);
+  const [filtroServicos, setFiltroServicos] = useState<string[]>([]);
   const [ocultarValores, setOcultarValores] = useState(false);
 
   const atendimentosFiltrados = useMemo(() => {
@@ -61,13 +62,13 @@ const Index = () => {
           const fim = format(filtroDataFim, 'yyyy-MM-dd');
           if (a.data > fim) return false;
         }
-        if (filtroStatus !== 'TODOS' && a.status !== filtroStatus) return false;
-        if (filtroCliente !== 'TODOS' && a.cliente !== filtroCliente) return false;
-        if (filtroServico !== 'TODOS' && a.servico_id !== filtroServico) return false;
+        if (filtroStatus.length > 0 && !filtroStatus.includes(a.status)) return false;
+        if (filtroClientes.length > 0 && !filtroClientes.includes(a.cliente)) return false;
+        if (filtroServicos.length > 0 && !filtroServicos.includes(a.servico_id ?? '')) return false;
         return true;
       })
       .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
-  }, [atendimentos, filtroDataInicio, filtroDataFim, filtroStatus, filtroCliente, filtroServico]);
+  }, [atendimentos, filtroDataInicio, filtroDataFim, filtroStatus, filtroClientes, filtroServicos]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -106,6 +107,10 @@ const Index = () => {
     atualizar(id, { status });
   };
 
+  const toggleStatusFiltro = (s: string) => {
+    setFiltroStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  };
+
   const copiarTudoAgenda = () => {
     if (atendimentosFiltrados.length === 0) {
       toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
@@ -118,10 +123,10 @@ const Index = () => {
 
   const limparFiltros = () => {
     setFiltroDataInicio(undefined); setFiltroDataFim(undefined);
-    setFiltroStatus('TODOS'); setFiltroCliente('TODOS'); setFiltroServico('TODOS');
+    setFiltroStatus([]); setFiltroClientes([]); setFiltroServicos([]);
   };
 
-  const temFiltro = filtroDataInicio || filtroDataFim || filtroStatus !== 'TODOS' || filtroCliente !== 'TODOS' || filtroServico !== 'TODOS';
+  const temFiltro = filtroDataInicio || filtroDataFim || filtroStatus.length > 0 || filtroClientes.length > 0 || filtroServicos.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -153,6 +158,7 @@ const Index = () => {
         <Tabs defaultValue="atendimentos">
           <TabsList>
             <TabsTrigger value="atendimentos" className="gap-1"><Activity className="w-4 h-4" /> Atendimentos</TabsTrigger>
+            <TabsTrigger value="calendario" className="gap-1"><CalendarRange className="w-4 h-4" /> Calendário</TabsTrigger>
             <TabsTrigger value="pendencias" className="gap-1"><ListTodo className="w-4 h-4" /> Pendências</TabsTrigger>
           </TabsList>
 
@@ -160,15 +166,15 @@ const Index = () => {
             <QuickMode onSave={adicionar} />
             <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} />
 
-            {/* Totalizador de status */}
+            {/* Totalizador de status (clicável - multi) */}
             <div className="flex flex-wrap gap-2">
               {STATUS_FLOW.map(s => (
                 <button
                   key={s}
-                  onClick={() => setFiltroStatus(filtroStatus === s ? 'TODOS' : s)}
+                  onClick={() => toggleStatusFiltro(s)}
                   className={cn(
                     "glass-card px-3 py-2 flex items-center gap-2 transition-all hover:scale-[1.02]",
-                    filtroStatus === s && 'ring-2 ring-primary'
+                    filtroStatus.includes(s) && 'ring-2 ring-primary'
                   )}
                 >
                   <Badge variant="outline" className={cn("text-xs", STATUS_DOT[s])}>
@@ -211,35 +217,27 @@ const Index = () => {
                       <Calendar mode="single" selected={filtroDataFim} onSelect={setFiltroDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
                     </PopoverContent>
                   </Popover>
-                  <Select value={filtroCliente} onValueChange={setFiltroCliente}>
-                    <SelectTrigger className="w-40 h-8 text-xs">
-                      <Filter className="w-3 h-3 mr-1" /><SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TODOS">Todos clientes</SelectItem>
-                      {clientes.map(c => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filtroServico} onValueChange={setFiltroServico}>
-                    <SelectTrigger className="w-36 h-8 text-xs">
-                      <Filter className="w-3 h-3 mr-1" /><SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TODOS">Todos serviços</SelectItem>
-                      {servicos.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                    <SelectTrigger className="w-40 h-8 text-xs">
-                      <Filter className="w-3 h-3 mr-1" /><SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TODOS">Todos status</SelectItem>
-                      {STATUS_FLOW.map(s => (
-                        <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSelect
+                    options={clientes.map(c => ({ value: c.nome, label: c.nome }))}
+                    selected={filtroClientes}
+                    onChange={setFiltroClientes}
+                    placeholder="Clientes"
+                    className="w-40"
+                  />
+                  <MultiSelect
+                    options={servicos.map(s => ({ value: s.id, label: s.nome }))}
+                    selected={filtroServicos}
+                    onChange={setFiltroServicos}
+                    placeholder="Serviços"
+                    className="w-36"
+                  />
+                  <MultiSelect
+                    options={STATUS_FLOW.map(s => ({ value: s, label: STATUS_LABELS[s] }))}
+                    selected={filtroStatus}
+                    onChange={setFiltroStatus}
+                    placeholder="Status"
+                    className="w-40"
+                  />
                   {temFiltro && (
                     <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-8 px-2">
                       <X className="w-3 h-3" />
@@ -256,6 +254,10 @@ const Index = () => {
                 ocultarValores={ocultarValores}
               />
             </div>
+          </TabsContent>
+
+          <TabsContent value="calendario">
+            <CalendarView atendimentos={atendimentos} onAtendimentoClick={handleEdit} />
           </TabsContent>
 
           <TabsContent value="pendencias">

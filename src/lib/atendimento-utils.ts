@@ -65,7 +65,27 @@ export function textoPrazo(dataAtendimento: string): string {
 
 export function conflitaAgenda(a: Atendimento, b: Atendimento): boolean {
   if (a.id === b.id || a.data !== b.data) return false;
-  return a.hora_inicio < b.hora_fim && b.hora_inicio < a.hora_fim;
+  // intervalos ranges para subtrair (são pausas, não bloqueiam)
+  const rangesA = effectiveRanges(a);
+  const rangesB = effectiveRanges(b);
+  for (const ra of rangesA) {
+    for (const rb of rangesB) {
+      if (ra.start < rb.end && rb.start < ra.end) return true;
+    }
+  }
+  return false;
+}
+
+function effectiveRanges(a: Atendimento): { start: string; end: string }[] {
+  if (a.intervalo_inicio && a.intervalo_fim &&
+      a.intervalo_inicio >= a.hora_inicio && a.intervalo_fim <= a.hora_fim &&
+      a.intervalo_inicio < a.intervalo_fim) {
+    return [
+      { start: a.hora_inicio, end: a.intervalo_inicio },
+      { start: a.intervalo_fim, end: a.hora_fim },
+    ];
+  }
+  return [{ start: a.hora_inicio, end: a.hora_fim }];
 }
 
 export function formatarHora(date: Date): string {

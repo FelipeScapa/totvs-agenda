@@ -53,9 +53,10 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       setHoraInicio(editando.hora_inicio);
       setHoraFim(editando.hora_fim);
       setObservacoes(editando.observacoes);
-      setTemIntervalo(false);
-      setIntervaloInicio('12:00');
-      setIntervaloFim('13:30');
+      const hasIntervalo = !!(editando.intervalo_inicio && editando.intervalo_fim);
+      setTemIntervalo(hasIntervalo);
+      setIntervaloInicio(editando.intervalo_inicio || '12:00');
+      setIntervaloFim(editando.intervalo_fim || '13:30');
     }
   }, [editando]);
 
@@ -89,6 +90,8 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       observacoes: observacoes.trim(),
       data_criacao: editando?.data_criacao ?? now,
       data_atualizacao: now,
+      intervalo_inicio: temIntervalo ? intervaloInicio : undefined,
+      intervalo_fim: temIntervalo ? intervaloFim : undefined,
     };
     onSave(atendimento);
     onOpenChange(false);
