@@ -88,18 +88,20 @@ export function QuickMode({ onSave }: QuickModeProps) {
   }, [servicos, servicoId]);
 
   useEffect(() => {
-    if (!ativo || !inicio || pausado) return;
+    if (!ativo || !inicio) return;
     const tick = () => {
-      const diff = Date.now() - inicio.getTime() - totalPausado;
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+      if (!pausado) {
+        const diff = Date.now() - inicio.getTime() - totalPausado;
+        setElapsed(fmtDur(diff));
+      }
+      if (pausado && pausaInicio) {
+        setPausaElapsed(fmtDur(Date.now() - pausaInicio.getTime()));
+      }
     };
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [ativo, inicio, pausado, totalPausado]);
+  }, [ativo, inicio, pausado, totalPausado, pausaInicio]);
 
   const iniciar = useCallback(() => {
     setInicio(new Date());
