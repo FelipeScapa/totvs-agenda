@@ -9,20 +9,14 @@ import { TipoManager } from '@/components/TipoManager';
 import { ServicoManager } from '@/components/ServicoManager';
 import { PendenciasView } from '@/components/PendenciasView';
 import { CalendarView } from '@/components/CalendarView';
-import { MultiSelect } from '@/components/MultiSelect';
+import { FiltersBar, FiltersState, aplicarFiltros } from '@/components/FiltersBar';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Plus, Activity, Users, Tag, X, Briefcase, Copy, ListTodo, CalendarRange } from 'lucide-react';
+import { Plus, Activity, Users, Tag, Briefcase, Copy, ListTodo, CalendarRange } from 'lucide-react';
 import { STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useClientes } from '@/hooks/use-clientes';
-import { useServicos } from '@/hooks/use-servicos';
 import { useToast } from '@/hooks/use-toast';
 import { gerarTextoAgenda } from '@/lib/atendimento-utils';
 
@@ -36,39 +30,19 @@ const STATUS_DOT: Record<string, string> = {
 
 const Index = () => {
   const { atendimentos, adicionar, atualizar, remover } = useAtendimentos();
-  const { clientes } = useClientes();
-  const { servicos } = useServicos();
   const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [editando, setEditando] = useState<Atendimento | null>(null);
   const [clienteOpen, setClienteOpen] = useState(false);
   const [tipoOpen, setTipoOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
-  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
-  const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
-  const [filtroStatus, setFiltroStatus] = useState<string[]>([]);
-  const [filtroClientes, setFiltroClientes] = useState<string[]>([]);
-  const [filtroServicos, setFiltroServicos] = useState<string[]>([]);
+  const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
   const [ocultarValores, setOcultarValores] = useState(false);
 
   const atendimentosFiltrados = useMemo(() => {
-    return atendimentos
-      .filter(a => {
-        if (filtroDataInicio) {
-          const inicio = format(filtroDataInicio, 'yyyy-MM-dd');
-          if (a.data < inicio) return false;
-        }
-        if (filtroDataFim) {
-          const fim = format(filtroDataFim, 'yyyy-MM-dd');
-          if (a.data > fim) return false;
-        }
-        if (filtroStatus.length > 0 && !filtroStatus.includes(a.status)) return false;
-        if (filtroClientes.length > 0 && !filtroClientes.includes(a.cliente)) return false;
-        if (filtroServicos.length > 0 && !filtroServicos.includes(a.servico_id ?? '')) return false;
-        return true;
-      })
+    return aplicarFiltros(atendimentos, filters)
       .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
-  }, [atendimentos, filtroDataInicio, filtroDataFim, filtroStatus, filtroClientes, filtroServicos]);
+  }, [atendimentos, filters]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -108,7 +82,7 @@ const Index = () => {
   };
 
   const toggleStatusFiltro = (s: string) => {
-    setFiltroStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+    setFilters({ ...filters, status: filters.status.includes(s) ? filters.status.filter(x => x !== s) : [...filters.status, s] });
   };
 
   const copiarTudoAgenda = () => {
@@ -120,13 +94,6 @@ const Index = () => {
     navigator.clipboard.writeText(texto);
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas copiadas.` });
   };
-
-  const limparFiltros = () => {
-    setFiltroDataInicio(undefined); setFiltroDataFim(undefined);
-    setFiltroStatus([]); setFiltroClientes([]); setFiltroServicos([]);
-  };
-
-  const temFiltro = filtroDataInicio || filtroDataFim || filtroStatus.length > 0 || filtroClientes.length > 0 || filtroServicos.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -174,7 +141,7 @@ const Index = () => {
                   onClick={() => toggleStatusFiltro(s)}
                   className={cn(
                     "glass-card px-3 py-2 flex items-center gap-2 transition-all hover:scale-[1.02]",
-                    filtroStatus.includes(s) && 'ring-2 ring-primary'
+                    filters.status.includes(s) && 'ring-2 ring-primary'
                   )}
                 >
                   <Badge variant="outline" className={cn("text-xs", STATUS_DOT[s])}>
@@ -185,6 +152,10 @@ const Index = () => {
               ))}
             </div>
 
+            <div className="glass-card p-3">
+              <FiltersBar filters={filters} setFilters={setFilters} />
+            </div>
+
             <div>
               <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
@@ -193,57 +164,6 @@ const Index = () => {
                 <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1 h-8 text-xs">
                   <Copy className="w-3 h-3" /> Copiar agendas filtradas
                 </Button>
-                <div className="flex items-center gap-2 ml-auto flex-wrap">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-32 justify-start text-left text-xs h-8", !filtroDataInicio && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-1 h-3 w-3" />
-                        {filtroDataInicio ? format(filtroDataInicio, "dd/MM/yyyy") : "Início"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={filtroDataInicio} onSelect={setFiltroDataInicio} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                  <span className="text-muted-foreground text-xs">até</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-32 justify-start text-left text-xs h-8", !filtroDataFim && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-1 h-3 w-3" />
-                        {filtroDataFim ? format(filtroDataFim, "dd/MM/yyyy") : "Fim"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={filtroDataFim} onSelect={setFiltroDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                  <MultiSelect
-                    options={clientes.map(c => ({ value: c.nome, label: c.nome }))}
-                    selected={filtroClientes}
-                    onChange={setFiltroClientes}
-                    placeholder="Clientes"
-                    className="w-40"
-                  />
-                  <MultiSelect
-                    options={servicos.map(s => ({ value: s.id, label: s.nome }))}
-                    selected={filtroServicos}
-                    onChange={setFiltroServicos}
-                    placeholder="Serviços"
-                    className="w-36"
-                  />
-                  <MultiSelect
-                    options={STATUS_FLOW.map(s => ({ value: s, label: STATUS_LABELS[s] }))}
-                    selected={filtroStatus}
-                    onChange={setFiltroStatus}
-                    placeholder="Status"
-                    className="w-40"
-                  />
-                  {temFiltro && (
-                    <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-8 px-2">
-                      <X className="w-3 h-3" />
-                    </Button>
-                  )}
-                </div>
               </div>
               <AtendimentoList
                 atendimentos={atendimentosFiltrados}

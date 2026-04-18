@@ -221,7 +221,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
         </Select>
 
         {ativo && inicio && (
-          <div className="flex items-center gap-3 font-mono text-lg text-primary font-bold">
+          <div className="flex items-center gap-3 font-mono text-lg text-primary font-bold flex-wrap">
             <span className="text-xs text-muted-foreground font-sans uppercase tracking-wider">Início</span>
             <span className="text-base">{formatarHora(inicio)}</span>
             <span className="text-muted-foreground">·</span>
@@ -231,7 +231,15 @@ export function QuickMode({ onSave }: QuickModeProps) {
               <span className="flex items-center gap-1 text-warning text-base">
                 <Pause className="w-4 h-4" />
                 <span className="font-mono">{pausaElapsed}</span>
-                <span className="text-xs font-sans">pausa</span>
+                <span className="text-xs font-sans">pausa atual</span>
+              </span>
+            )}
+            {(totalPausado > 0 || (pausado && pausaInicio)) && (
+              <span className="flex items-center gap-1 text-muted-foreground text-sm font-sans">
+                <span className="uppercase tracking-wider text-xs">Total pausado:</span>
+                <span className="font-mono text-warning">
+                  {fmtDur(totalPausado + (pausado && pausaInicio ? Date.now() - pausaInicio.getTime() : 0))}
+                </span>
               </span>
             )}
           </div>

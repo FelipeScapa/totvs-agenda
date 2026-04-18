@@ -3,7 +3,7 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,7 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
   const [cursor, setCursor] = useState<Date>(new Date());
   const { servicos } = useServicos();
   const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
+  const [ocultarValores, setOcultarValores] = useState(false);
 
   const filtrados = useMemo(() => aplicarFiltros(atendimentos, filters), [atendimentos, filters]);
 
@@ -111,11 +112,19 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
 
   return (
     <div className="space-y-4">
+      {/* Toggle ocultar */}
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" onClick={() => setOcultarValores(v => !v)} className="gap-1 text-xs text-muted-foreground">
+          {!ocultarValores ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+          {!ocultarValores ? 'Ocultar valores' : 'Mostrar valores'}
+        </Button>
+      </div>
+
       {/* Dashboard cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
         <StatCard icon={Clock} label="Horas" value={stats.totalHoras.toFixed(1)} color="text-primary" />
-        <StatCard icon={DollarSign} label="Valor" value={`R$ ${stats.valorTotal.toFixed(2)}`} color="text-primary" />
+        <StatCard icon={DollarSign} label="Valor" value={ocultarValores ? '••••••' : `R$ ${stats.valorTotal.toFixed(2)}`} color="text-primary" />
         <StatCard icon={Clock} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
         <StatCard icon={Clock} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
       </div>
@@ -137,12 +146,6 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
       {/* Filters */}
       <div className="glass-card p-3">
         <FiltersBar filters={filters} setFilters={setFilters} />
-      </div>
-
-      {/* Top clients/services */}
-      <div className="grid md:grid-cols-2 gap-3">
-        <RankingCard title="Top clientes" rows={stats.porCliente.slice(0, 5)} />
-        <RankingCard title="Top serviços" rows={stats.porServico.slice(0, 5)} />
       </div>
 
       {/* Calendar nav */}
