@@ -139,12 +139,6 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
         <FiltersBar filters={filters} setFilters={setFilters} />
       </div>
 
-      {/* Top clients/services */}
-      <div className="grid md:grid-cols-2 gap-3">
-        <RankingCard title="Top clientes" rows={stats.porCliente.slice(0, 5)} />
-        <RankingCard title="Top serviços" rows={stats.porServico.slice(0, 5)} />
-      </div>
-
       {/* Calendar nav */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
