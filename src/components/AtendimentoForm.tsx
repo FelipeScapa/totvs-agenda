@@ -90,6 +90,8 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       observacoes: observacoes.trim(),
       data_criacao: editando?.data_criacao ?? now,
       data_atualizacao: now,
+      intervalo_inicio: temIntervalo ? intervaloInicio : undefined,
+      intervalo_fim: temIntervalo ? intervaloFim : undefined,
     };
     onSave(atendimento);
     onOpenChange(false);
