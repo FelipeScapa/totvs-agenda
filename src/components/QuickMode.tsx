@@ -55,9 +55,15 @@ export function QuickMode({ onSave }: QuickModeProps) {
   const [tipo, setTipo] = useState(initial.tipo ?? '');
   const [servicoId, setServicoId] = useState(initial.servicoId ?? '');
   const [elapsed, setElapsed] = useState('00:00:00');
+  const [pausaElapsed, setPausaElapsed] = useState('00:00:00');
   const [totalPausado, setTotalPausado] = useState(initial.totalPausado ?? 0);
   const [pausaInicio, setPausaInicio] = useState<Date | null>(initial.pausaInicioISO ? new Date(initial.pausaInicioISO) : null);
   const [descricao, setDescricao] = useState(initial.descricao ?? '');
+
+  const fmtDur = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  };
 
   // Persist on every change while active
   useEffect(() => {
@@ -82,18 +88,20 @@ export function QuickMode({ onSave }: QuickModeProps) {
   }, [servicos, servicoId]);
 
   useEffect(() => {
-    if (!ativo || !inicio || pausado) return;
+    if (!ativo || !inicio) return;
     const tick = () => {
-      const diff = Date.now() - inicio.getTime() - totalPausado;
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+      if (!pausado) {
+        const diff = Date.now() - inicio.getTime() - totalPausado;
+        setElapsed(fmtDur(diff));
+      }
+      if (pausado && pausaInicio) {
+        setPausaElapsed(fmtDur(Date.now() - pausaInicio.getTime()));
+      }
     };
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [ativo, inicio, pausado, totalPausado]);
+  }, [ativo, inicio, pausado, totalPausado, pausaInicio]);
 
   const iniciar = useCallback(() => {
     setInicio(new Date());
@@ -105,6 +113,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
   const pausar = useCallback(() => {
     setPausado(true);
     setPausaInicio(new Date());
+    setPausaElapsed('00:00:00');
   }, []);
 
   const retomar = useCallback(() => {
@@ -113,6 +122,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
     }
     setPausado(false);
     setPausaInicio(null);
+    setPausaElapsed('00:00:00');
   }, [pausaInicio]);
 
   const finalizar = useCallback(() => {
@@ -217,7 +227,13 @@ export function QuickMode({ onSave }: QuickModeProps) {
             <span className="text-muted-foreground">·</span>
             <Clock className="w-4 h-4" />
             {elapsed}
-            {pausado && <span className="text-xs text-warning font-sans">(pausado)</span>}
+            {pausado && (
+              <span className="flex items-center gap-1 text-warning text-base">
+                <Pause className="w-4 h-4" />
+                <span className="font-mono">{pausaElapsed}</span>
+                <span className="text-xs font-sans">pausa</span>
+              </span>
+            )}
           </div>
         )}
 
