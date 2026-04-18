@@ -55,9 +55,15 @@ export function QuickMode({ onSave }: QuickModeProps) {
   const [tipo, setTipo] = useState(initial.tipo ?? '');
   const [servicoId, setServicoId] = useState(initial.servicoId ?? '');
   const [elapsed, setElapsed] = useState('00:00:00');
+  const [pausaElapsed, setPausaElapsed] = useState('00:00:00');
   const [totalPausado, setTotalPausado] = useState(initial.totalPausado ?? 0);
   const [pausaInicio, setPausaInicio] = useState<Date | null>(initial.pausaInicioISO ? new Date(initial.pausaInicioISO) : null);
   const [descricao, setDescricao] = useState(initial.descricao ?? '');
+
+  const fmtDur = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  };
 
   // Persist on every change while active
   useEffect(() => {
