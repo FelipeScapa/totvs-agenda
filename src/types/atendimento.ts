@@ -18,6 +18,8 @@ export interface Atendimento {
   observacoes: string;
   data_criacao: string;
   data_atualizacao: string;
+  intervalo_inicio?: string;
+  intervalo_fim?: string;
 }
 
 export const TIPO_LABELS: Record<TipoAtendimento, string> = {
