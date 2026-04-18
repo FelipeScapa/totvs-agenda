@@ -97,30 +97,6 @@ const Index = () => {
     toast({ title: 'Duplicado!', description: 'Atendimento duplicado com sucesso.' });
   };
 
-  const handleStatusChange = (id: string, status: Atendimento['status']) => {
-    atualizar(id, { status });
-  };
-
-  const toggleStatusFiltro = (s: string) => {
-    setFiltroStatus(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
-  };
-
-  const copiarTudoAgenda = () => {
-    if (atendimentosFiltrados.length === 0) {
-      toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
-      return;
-    }
-    const texto = atendimentosFiltrados.map(gerarTextoAgenda).join('\n\n');
-    navigator.clipboard.writeText(texto);
-    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas copiadas.` });
-  };
-
-  const limparFiltros = () => {
-    setFiltroDataInicio(undefined); setFiltroDataFim(undefined);
-    setFiltroStatus([]); setFiltroClientes([]); setFiltroServicos([]);
-  };
-
-  const temFiltro = filtroDataInicio || filtroDataFim || filtroStatus.length > 0 || filtroClientes.length > 0 || filtroServicos.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,7 +144,7 @@ const Index = () => {
                   onClick={() => toggleStatusFiltro(s)}
                   className={cn(
                     "glass-card px-3 py-2 flex items-center gap-2 transition-all hover:scale-[1.02]",
-                    filtroStatus.includes(s) && 'ring-2 ring-primary'
+                    filters.status.includes(s) && 'ring-2 ring-primary'
                   )}
                 >
                   <Badge variant="outline" className={cn("text-xs", STATUS_DOT[s])}>
@@ -187,56 +163,8 @@ const Index = () => {
                 <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1 h-8 text-xs">
                   <Copy className="w-3 h-3" /> Copiar agendas filtradas
                 </Button>
-                <div className="flex items-center gap-2 ml-auto flex-wrap">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-32 justify-start text-left text-xs h-8", !filtroDataInicio && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-1 h-3 w-3" />
-                        {filtroDataInicio ? format(filtroDataInicio, "dd/MM/yyyy") : "Início"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={filtroDataInicio} onSelect={setFiltroDataInicio} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                  <span className="text-muted-foreground text-xs">até</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("w-32 justify-start text-left text-xs h-8", !filtroDataFim && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-1 h-3 w-3" />
-                        {filtroDataFim ? format(filtroDataFim, "dd/MM/yyyy") : "Fim"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={filtroDataFim} onSelect={setFiltroDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                  <MultiSelect
-                    options={clientes.map(c => ({ value: c.nome, label: c.nome }))}
-                    selected={filtroClientes}
-                    onChange={setFiltroClientes}
-                    placeholder="Clientes"
-                    className="w-40"
-                  />
-                  <MultiSelect
-                    options={servicos.map(s => ({ value: s.id, label: s.nome }))}
-                    selected={filtroServicos}
-                    onChange={setFiltroServicos}
-                    placeholder="Serviços"
-                    className="w-36"
-                  />
-                  <MultiSelect
-                    options={STATUS_FLOW.map(s => ({ value: s, label: STATUS_LABELS[s] }))}
-                    selected={filtroStatus}
-                    onChange={setFiltroStatus}
-                    placeholder="Status"
-                    className="w-40"
-                  />
-                  {temFiltro && (
-                    <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-8 px-2">
-                      <X className="w-3 h-3" />
-                    </Button>
-                  )}
+                <div className="ml-auto">
+                  <FiltersBar filters={filters} setFilters={setFilters} />
                 </div>
               </div>
               <AtendimentoList
