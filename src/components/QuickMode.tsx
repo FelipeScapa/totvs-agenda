@@ -113,6 +113,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
   const pausar = useCallback(() => {
     setPausado(true);
     setPausaInicio(new Date());
+    setPausaElapsed('00:00:00');
   }, []);
 
   const retomar = useCallback(() => {
@@ -121,6 +122,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
     }
     setPausado(false);
     setPausaInicio(null);
+    setPausaElapsed('00:00:00');
   }, [pausaInicio]);
 
   const finalizar = useCallback(() => {
