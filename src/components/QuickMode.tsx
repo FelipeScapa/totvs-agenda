@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Atendimento } from '@/types/atendimento';
-import { formatarHora, calcularDuracao } from '@/lib/atendimento-utils';
+import { formatarHora } from '@/lib/atendimento-utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,22 +13,66 @@ interface QuickModeProps {
   onSave: (atendimento: Atendimento) => void;
 }
 
+const STORAGE_KEY = 'agenda-log-quickmode';
+
+interface PersistedState {
+  ativo: boolean;
+  pausado: boolean;
+  inicioISO: string | null;
+  cliente: string;
+  tipo: string;
+  servicoId: string;
+  totalPausado: number;
+  pausaInicioISO: string | null;
+  descricao: string;
+}
+
+function loadState(): Partial<PersistedState> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveState(s: PersistedState) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+}
+
+function clearState() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 export function QuickMode({ onSave }: QuickModeProps) {
   const { tipos } = useTiposAtendimento();
   const { clientes } = useClientes();
   const { servicos } = useServicos();
-  const [ativo, setAtivo] = useState(false);
-  const [pausado, setPausado] = useState(false);
-  const [inicio, setInicio] = useState<Date | null>(null);
-  const [cliente, setCliente] = useState('');
-  const [tipo, setTipo] = useState('');
-  const [servicoId, setServicoId] = useState('');
-  const [elapsed, setElapsed] = useState('00:00:00');
-  const [totalPausado, setTotalPausado] = useState(0);
-  const [pausaInicio, setPausaInicio] = useState<Date | null>(null);
-  const [descricao, setDescricao] = useState('');
 
-  // Set defaults when data loads
+  const initial = loadState();
+  const [ativo, setAtivo] = useState(initial.ativo ?? false);
+  const [pausado, setPausado] = useState(initial.pausado ?? false);
+  const [inicio, setInicio] = useState<Date | null>(initial.inicioISO ? new Date(initial.inicioISO) : null);
+  const [cliente, setCliente] = useState(initial.cliente ?? '');
+  const [tipo, setTipo] = useState(initial.tipo ?? '');
+  const [servicoId, setServicoId] = useState(initial.servicoId ?? '');
+  const [elapsed, setElapsed] = useState('00:00:00');
+  const [totalPausado, setTotalPausado] = useState(initial.totalPausado ?? 0);
+  const [pausaInicio, setPausaInicio] = useState<Date | null>(initial.pausaInicioISO ? new Date(initial.pausaInicioISO) : null);
+  const [descricao, setDescricao] = useState(initial.descricao ?? '');
+
+  // Persist on every change while active
+  useEffect(() => {
+    if (ativo) {
+      saveState({
+        ativo, pausado,
+        inicioISO: inicio?.toISOString() ?? null,
+        cliente, tipo, servicoId,
+        totalPausado,
+        pausaInicioISO: pausaInicio?.toISOString() ?? null,
+        descricao,
+      });
+    }
+  }, [ativo, pausado, inicio, cliente, tipo, servicoId, totalPausado, pausaInicio, descricao]);
+
   useEffect(() => {
     if (!tipo && tipos.length > 0) setTipo(tipos[0].id);
   }, [tipos, tipo]);
@@ -39,13 +83,15 @@ export function QuickMode({ onSave }: QuickModeProps) {
 
   useEffect(() => {
     if (!ativo || !inicio || pausado) return;
-    const interval = setInterval(() => {
+    const tick = () => {
       const diff = Date.now() - inicio.getTime() - totalPausado;
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
       setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-    }, 1000);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [ativo, inicio, pausado, totalPausado]);
 
@@ -90,7 +136,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
       descricao: descricao.trim(),
       tipo: tipo || 'SUPORTE',
       servico_id: servicoId || undefined,
-      data: now.split('T')[0],
+      data: inicio.toISOString().split('T')[0],
       hora_inicio: horaInicio,
       hora_fim: horaFim,
       duracao_horas: duracaoHoras,
@@ -109,7 +155,20 @@ export function QuickMode({ onSave }: QuickModeProps) {
     setElapsed('00:00:00');
     setTotalPausado(0);
     setPausaInicio(null);
+    clearState();
   }, [inicio, cliente, tipo, servicoId, descricao, onSave, totalPausado, pausado, pausaInicio]);
+
+  const descartar = useCallback(() => {
+    if (!confirm('Descartar atendimento em andamento?')) return;
+    setAtivo(false);
+    setPausado(false);
+    setInicio(null);
+    setDescricao('');
+    setElapsed('00:00:00');
+    setTotalPausado(0);
+    setPausaInicio(null);
+    clearState();
+  }, []);
 
   return (
     <div className="glass-card p-4 space-y-3">
@@ -162,7 +221,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
           </div>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 ml-auto">
           {!ativo ? (
             <Button onClick={iniciar} size="sm" className="gap-1" disabled={clientes.length > 0 && !cliente}>
               <Play className="w-3 h-3" /> Iniciar
@@ -171,7 +230,7 @@ export function QuickMode({ onSave }: QuickModeProps) {
             <>
               {!pausado ? (
                 <Button onClick={pausar} variant="outline" size="sm" className="gap-1">
-                  <Pause className="w-3 h-3" /> Intervalo
+                  <Pause className="w-3 h-3" /> Pausar
                 </Button>
               ) : (
                 <Button onClick={retomar} variant="outline" size="sm" className="gap-1">
@@ -180,6 +239,9 @@ export function QuickMode({ onSave }: QuickModeProps) {
               )}
               <Button onClick={finalizar} variant="destructive" size="sm" className="gap-1">
                 <Square className="w-3 h-3" /> Finalizar
+              </Button>
+              <Button onClick={descartar} variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                Descartar
               </Button>
             </>
           )}
