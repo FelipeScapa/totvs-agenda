@@ -2,11 +2,15 @@ import { useState, useMemo } from 'react';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks, parseISO } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useServicos } from '@/hooks/use-servicos';
+import { calcularValor, calcularStatusPrazo } from '@/lib/atendimento-utils';
+import { FiltersBar, FiltersState, aplicarFiltros } from '@/components/FiltersBar';
+import { STATUS_FLOW, STATUS_LABELS } from '@/types/atendimento';
 
 interface CalendarViewProps {
   atendimentos: Atendimento[];
@@ -35,17 +39,59 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
   const [view, setView] = useState<ViewMode>('mes');
   const [cursor, setCursor] = useState<Date>(new Date());
   const { servicos } = useServicos();
+  const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
+
+  const filtrados = useMemo(() => aplicarFiltros(atendimentos, filters), [atendimentos, filters]);
+
+  const getValorHora = (a: Atendimento) => {
+    if (a.servico_id) {
+      const s = servicos.find(x => x.id === a.servico_id);
+      if (s) return s.valor_hora;
+    }
+    return 26;
+  };
+
+  const stats = useMemo(() => {
+    const totalHoras = filtrados.reduce((s, a) => s + a.duracao_horas, 0);
+    const valorTotal = filtrados.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
+    const porCliente = new Map<string, { horas: number; valor: number; count: number }>();
+    const porServico = new Map<string, { horas: number; valor: number; count: number }>();
+    const counts: Record<string, number> = {};
+    STATUS_FLOW.forEach(s => counts[s] = 0);
+
+    filtrados.forEach(a => {
+      counts[a.status] = (counts[a.status] ?? 0) + 1;
+      const valor = calcularValor(a.duracao_horas, getValorHora(a));
+      const c = porCliente.get(a.cliente) ?? { horas: 0, valor: 0, count: 0 };
+      c.horas += a.duracao_horas; c.valor += valor; c.count++;
+      porCliente.set(a.cliente, c);
+      const sNome = a.servico_id ? (servicos.find(x => x.id === a.servico_id)?.nome ?? '—') : '—';
+      const sv = porServico.get(sNome) ?? { horas: 0, valor: 0, count: 0 };
+      sv.horas += a.duracao_horas; sv.valor += valor; sv.count++;
+      porServico.set(sNome, sv);
+    });
+
+    const pendentes = filtrados.filter(a => a.status !== 'APONTADO').length;
+    const atrasados = filtrados.filter(a => a.status !== 'APONTADO' && calcularStatusPrazo(a.data) === 'ATRASADO').length;
+
+    return {
+      total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados,
+      porCliente: [...porCliente.entries()].sort((a, b) => b[1].horas - a[1].horas),
+      porServico: [...porServico.entries()].sort((a, b) => b[1].horas - a[1].horas),
+      counts,
+    };
+  }, [filtrados, servicos]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, Atendimento[]>();
-    atendimentos.forEach(a => {
+    filtrados.forEach(a => {
       const list = map.get(a.data) ?? [];
       list.push(a);
       map.set(a.data, list);
     });
     map.forEach(list => list.sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio)));
     return map;
-  }, [atendimentos]);
+  }, [filtrados]);
 
   const navigate = (dir: number) => {
     if (view === 'mes') setCursor(dir > 0 ? addMonths(cursor, 1) : subMonths(cursor, 1));
@@ -64,7 +110,42 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
   }, [cursor, view]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Dashboard cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
+        <StatCard icon={Clock} label="Horas" value={stats.totalHoras.toFixed(1)} color="text-primary" />
+        <StatCard icon={DollarSign} label="Valor" value={`R$ ${stats.valorTotal.toFixed(2)}`} color="text-primary" />
+        <StatCard icon={Clock} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
+        <StatCard icon={Clock} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
+      </div>
+
+      {/* Status totalizer */}
+      <div className="flex flex-wrap gap-2">
+        {STATUS_FLOW.map(s => (
+          <button
+            key={s}
+            onClick={() => setFilters({ ...filters, status: filters.status.includes(s) ? filters.status.filter(x => x !== s) : [...filters.status, s] })}
+            className={cn("glass-card px-3 py-2 flex items-center gap-2 transition-all hover:scale-[1.02]", filters.status.includes(s) && 'ring-2 ring-primary')}
+          >
+            <Badge variant="outline" className="text-xs">{STATUS_LABELS[s]}</Badge>
+            <span className="font-bold">{stats.counts[s]}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="glass-card p-3">
+        <FiltersBar filters={filters} setFilters={setFilters} />
+      </div>
+
+      {/* Top clients/services */}
+      <div className="grid md:grid-cols-2 gap-3">
+        <RankingCard title="Top clientes" rows={stats.porCliente.slice(0, 5)} />
+        <RankingCard title="Top serviços" rows={stats.porServico.slice(0, 5)} />
+      </div>
+
+      {/* Calendar nav */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}><ChevronLeft className="w-4 h-4" /></Button>
@@ -82,8 +163,41 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
       </div>
 
       {view === 'mes' && <MesView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
-      {view === 'semana' && <SemanaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} servicos={servicos} />}
-      {view === 'dia' && <DiaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} servicos={servicos} />}
+      {view === 'semana' && <SemanaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
+      {view === 'dia' && <DiaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, color = 'text-foreground' }: { icon: any; label: string; value: string; color?: string }) {
+  return (
+    <div className="glass-card p-3 space-y-1">
+      <div className="flex items-center gap-2">
+        <Icon className={cn("w-4 h-4", color)} />
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
+      </div>
+      <p className={cn("text-xl font-bold", color)}>{value}</p>
+    </div>
+  );
+}
+
+function RankingCard({ title, rows }: { title: string; rows: [string, { horas: number; valor: number; count: number }][] }) {
+  const max = Math.max(1, ...rows.map(r => r[1].horas));
+  return (
+    <div className="glass-card p-3 space-y-2">
+      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</h3>
+      {rows.length === 0 && <p className="text-xs text-muted-foreground">Sem dados</p>}
+      {rows.map(([name, v]) => (
+        <div key={name} className="space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="truncate font-medium">{name}</span>
+            <span className="text-muted-foreground">{v.horas.toFixed(1)}h · R$ {v.valor.toFixed(0)} · {v.count}x</span>
+          </div>
+          <div className="h-1.5 bg-secondary/30 rounded overflow-hidden">
+            <div className="h-full bg-primary" style={{ width: `${(v.horas / max) * 100}%` }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -140,7 +254,7 @@ function MesView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string
   );
 }
 
-function SemanaView({ cursor, byDate, onClick, servicos }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; servicos: any[] }) {
+function SemanaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
   const start = startOfWeek(cursor, { weekStartsOn: 0 });
   const days: Date[] = [];
   for (let i = 0; i < 7; i++) days.push(addDays(start, i));
@@ -176,40 +290,71 @@ function SemanaView({ cursor, byDate, onClick, servicos }: { cursor: Date; byDat
   );
 }
 
-function DiaView({ cursor, byDate, onClick, servicos }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; servicos: any[] }) {
+const HOUR_PX = 40; // 24h * 40 = 960px
+
+function toMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+
+function DiaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
   const key = format(cursor, 'yyyy-MM-dd');
   const items = byDate.get(key) ?? [];
-  const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7h–20h
+  const hours = Array.from({ length: 24 }, (_, i) => i); // 0–23
 
-  const itemTop = (hora: string) => {
-    const [h, m] = hora.split(':').map(Number);
-    return ((h - 7) * 60 + m) * (60 / 60); // 60px por hora
-  };
-  const itemHeight = (a: Atendimento) => {
-    const [hi, mi] = a.hora_inicio.split(':').map(Number);
-    const [hf, mf] = a.hora_fim.split(':').map(Number);
-    return Math.max(24, ((hf * 60 + mf) - (hi * 60 + mi)));
-  };
+  // Build segments: for each atendimento, split at intervalo (if any) into one or two segments + a 'pausa' segment
+  type Seg = { kind: 'work' | 'pausa'; start: number; end: number; a: Atendimento };
+  const segments: Seg[] = [];
+  items.forEach(a => {
+    const ini = toMin(a.hora_inicio);
+    const fim = toMin(a.hora_fim);
+    if (a.intervalo_inicio && a.intervalo_fim) {
+      const ii = toMin(a.intervalo_inicio);
+      const ff = toMin(a.intervalo_fim);
+      if (ii > ini && ff < fim && ii < ff) {
+        segments.push({ kind: 'work', start: ini, end: ii, a });
+        segments.push({ kind: 'pausa', start: ii, end: ff, a });
+        segments.push({ kind: 'work', start: ff, end: fim, a });
+        return;
+      }
+    }
+    segments.push({ kind: 'work', start: ini, end: fim, a });
+  });
+
+  const px = (min: number) => (min / 60) * HOUR_PX;
 
   return (
     <div className="glass-card p-3">
-      <div className="relative" style={{ height: `${hours.length * 60}px` }}>
-        {hours.map((h, i) => (
-          <div key={h} className="absolute left-0 right-0 border-t border-border/30 flex" style={{ top: `${i * 60}px` }}>
+      <div className="relative" style={{ height: `${24 * HOUR_PX}px` }}>
+        {hours.map(h => (
+          <div key={h} className="absolute left-0 right-0 border-t border-border/30 flex" style={{ top: `${h * HOUR_PX}px` }}>
             <span className="text-xs text-muted-foreground w-12 -mt-2 font-mono">{String(h).padStart(2, '0')}:00</span>
           </div>
         ))}
         <div className="absolute left-14 right-0 top-0 bottom-0">
-          {items.map(a => (
+          {segments.map((seg, idx) => (
             <button
-              key={a.id}
-              onClick={() => onClick?.(a)}
-              className={cn("absolute left-0 right-0 rounded border p-1.5 text-left text-xs overflow-hidden", colorForCliente(a.cliente))}
-              style={{ top: `${itemTop(a.hora_inicio)}px`, height: `${itemHeight(a)}px` }}
+              key={`${seg.a.id}-${idx}`}
+              onClick={() => onClick?.(seg.a)}
+              className={cn(
+                "absolute left-0 right-0 rounded border p-1.5 text-left text-xs overflow-hidden",
+                seg.kind === 'work'
+                  ? colorForCliente(seg.a.cliente)
+                  : "bg-muted/40 border-dashed border-muted-foreground/40 text-muted-foreground"
+              )}
+              style={{ top: `${px(seg.start)}px`, height: `${Math.max(20, px(seg.end - seg.start))}px` }}
+              title={seg.kind === 'pausa' ? 'Intervalo' : `${seg.a.hora_inicio}–${seg.a.hora_fim} ${seg.a.cliente}`}
             >
-              <div className="font-mono">{a.hora_inicio}–{a.hora_fim}</div>
-              <div className="font-semibold">{a.cliente}</div>
-              {a.descricao && <div className="opacity-80 truncate">{a.descricao}</div>}
+              {seg.kind === 'pausa' ? (
+                <div className="flex items-center gap-1">
+                  <Coffee className="w-3 h-3" />
+                  <span className="font-mono">{seg.a.intervalo_inicio}–{seg.a.intervalo_fim}</span>
+                  <span className="opacity-70">intervalo</span>
+                </div>
+              ) : (
+                <>
+                  <div className="font-mono">{minToHHMM(seg.start)}–{minToHHMM(seg.end)}</div>
+                  <div className="font-semibold truncate">{seg.a.cliente}</div>
+                  {seg.a.descricao && <div className="opacity-80 truncate">{seg.a.descricao}</div>}
+                </>
+              )}
             </button>
           ))}
           {items.length === 0 && (
@@ -221,4 +366,9 @@ function DiaView({ cursor, byDate, onClick, servicos }: { cursor: Date; byDate: 
       </div>
     </div>
   );
+}
+
+function minToHHMM(min: number) {
+  const h = Math.floor(min / 60), m = min % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
