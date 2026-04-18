@@ -30,39 +30,19 @@ const STATUS_DOT: Record<string, string> = {
 
 const Index = () => {
   const { atendimentos, adicionar, atualizar, remover } = useAtendimentos();
-  const { clientes } = useClientes();
-  const { servicos } = useServicos();
   const { toast } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [editando, setEditando] = useState<Atendimento | null>(null);
   const [clienteOpen, setClienteOpen] = useState(false);
   const [tipoOpen, setTipoOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
-  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>();
-  const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>();
-  const [filtroStatus, setFiltroStatus] = useState<string[]>([]);
-  const [filtroClientes, setFiltroClientes] = useState<string[]>([]);
-  const [filtroServicos, setFiltroServicos] = useState<string[]>([]);
+  const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
   const [ocultarValores, setOcultarValores] = useState(false);
 
   const atendimentosFiltrados = useMemo(() => {
-    return atendimentos
-      .filter(a => {
-        if (filtroDataInicio) {
-          const inicio = format(filtroDataInicio, 'yyyy-MM-dd');
-          if (a.data < inicio) return false;
-        }
-        if (filtroDataFim) {
-          const fim = format(filtroDataFim, 'yyyy-MM-dd');
-          if (a.data > fim) return false;
-        }
-        if (filtroStatus.length > 0 && !filtroStatus.includes(a.status)) return false;
-        if (filtroClientes.length > 0 && !filtroClientes.includes(a.cliente)) return false;
-        if (filtroServicos.length > 0 && !filtroServicos.includes(a.servico_id ?? '')) return false;
-        return true;
-      })
+    return aplicarFiltros(atendimentos, filters)
       .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
-  }, [atendimentos, filtroDataInicio, filtroDataFim, filtroStatus, filtroClientes, filtroServicos]);
+  }, [atendimentos, filters]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -97,6 +77,23 @@ const Index = () => {
     toast({ title: 'Duplicado!', description: 'Atendimento duplicado com sucesso.' });
   };
 
+  const handleStatusChange = (id: string, status: Atendimento['status']) => {
+    atualizar(id, { status });
+  };
+
+  const toggleStatusFiltro = (s: string) => {
+    setFilters({ ...filters, status: filters.status.includes(s) ? filters.status.filter(x => x !== s) : [...filters.status, s] });
+  };
+
+  const copiarTudoAgenda = () => {
+    if (atendimentosFiltrados.length === 0) {
+      toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
+      return;
+    }
+    const texto = atendimentosFiltrados.map(gerarTextoAgenda).join('\n\n');
+    navigator.clipboard.writeText(texto);
+    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas copiadas.` });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,6 +152,10 @@ const Index = () => {
               ))}
             </div>
 
+            <div className="glass-card p-3">
+              <FiltersBar filters={filters} setFilters={setFilters} />
+            </div>
+
             <div>
               <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
@@ -163,9 +164,6 @@ const Index = () => {
                 <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1 h-8 text-xs">
                   <Copy className="w-3 h-3" /> Copiar agendas filtradas
                 </Button>
-                <div className="ml-auto">
-                  <FiltersBar filters={filters} setFilters={setFilters} />
-                </div>
               </div>
               <AtendimentoList
                 atendimentos={atendimentosFiltrados}
