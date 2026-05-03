@@ -40,6 +40,8 @@ const Index = () => {
   const [servicoOpen, setServicoOpen] = useState(false);
   const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
   const [ocultarValores, setOcultarValores] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [appTab, setAppTab] = useState<'agenda' | 'financeiro'>('agenda');
 
   const atendimentosFiltrados = useMemo(() => {
     return aplicarFiltros(atendimentos, filters)
