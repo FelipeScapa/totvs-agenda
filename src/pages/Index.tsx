@@ -198,7 +198,10 @@ const Index = () => {
             <PendenciasView />
           </TabsContent>
         </Tabs>
+        )}
       </main>
+
+      <BackupManager open={backupOpen} onOpenChange={setBackupOpen} />
 
       <AtendimentoForm
         open={formOpen}
