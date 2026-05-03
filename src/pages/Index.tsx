@@ -106,26 +106,36 @@ const Index = () => {
           <div className="flex items-center gap-3">
             <Activity className="w-5 h-5 text-primary" />
             <h1 className="text-lg font-bold">agenda-log</h1>
-            <span className="text-xs text-muted-foreground font-mono">rastreador de trabalho faturável</span>
+            <span className="text-xs text-muted-foreground font-mono hidden md:inline">rastreador + financeiro pessoal</span>
+            <div className="ml-3 flex items-center bg-muted rounded p-0.5">
+              <button onClick={() => setAppTab('agenda')} className={cn("px-3 py-1 rounded text-xs", appTab === 'agenda' && 'bg-background shadow-sm')}>Agenda</button>
+              <button onClick={() => setAppTab('financeiro')} className={cn("px-3 py-1 rounded text-xs gap-1 inline-flex items-center", appTab === 'financeiro' && 'bg-background shadow-sm')}><Wallet className="w-3 h-3" /> Financeiro</button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setClienteOpen(true)} className="gap-1">
-              <Users className="w-4 h-4" /> Clientes
+            <Button variant="ghost" size="sm" onClick={() => setBackupOpen(true)} className="gap-1" title="Backup / Restaurar">
+              <Database className="w-4 h-4" /> <span className="hidden md:inline">Backup</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setTipoOpen(true)} className="gap-1">
-              <Tag className="w-4 h-4" /> Tipos
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setServicoOpen(true)} className="gap-1">
-              <Briefcase className="w-4 h-4" /> Serviços
-            </Button>
-            <Button size="sm" onClick={() => { setEditando(null); setFormOpen(true); }} className="gap-1">
-              <Plus className="w-4 h-4" /> Novo
-            </Button>
+            {appTab === 'agenda' && <>
+              <Button variant="ghost" size="sm" onClick={() => setClienteOpen(true)} className="gap-1">
+                <Users className="w-4 h-4" /> Clientes
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setTipoOpen(true)} className="gap-1">
+                <Tag className="w-4 h-4" /> Tipos
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setServicoOpen(true)} className="gap-1">
+                <Briefcase className="w-4 h-4" /> Serviços
+              </Button>
+              <Button size="sm" onClick={() => { setEditando(null); setFormOpen(true); }} className="gap-1">
+                <Plus className="w-4 h-4" /> Novo
+              </Button>
+            </>}
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-6 space-y-6">
+        {appTab === 'financeiro' ? <FinanceiroApp /> : (
         <Tabs defaultValue="atendimentos">
           <TabsList>
             <TabsTrigger value="atendimentos" className="gap-1"><Activity className="w-4 h-4" /> Atendimentos</TabsTrigger>
