@@ -22,7 +22,8 @@ export interface FinCategoria {
   id: string;
   nome: string;
   movimento: FinTipoMov;
-  parent_id?: string;             // subcategoria
+  parent_id?: string;             // subcategoria (legado)
+  tipo_id?: string;               // Tipo padrão (Essencial/Qualidade/Investimento) — só DESPESA
   somar_nos_ganhos?: boolean;     // só para RECEITA
   cor?: string;
 }
