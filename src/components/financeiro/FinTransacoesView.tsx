@@ -207,7 +207,7 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
                             <CheckCircle2 className="w-3 h-3" /> Efetivar
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => { setEditing(isVirt ? null : t); if (isVirt) { /* materializar copia */ const { id, data_criacao, ...rest } = t; setEditing({ ...rest, id: '', data_criacao: '' } as any); } setOpen(true); }}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setEditing(isVirt ? null : t); setOpen(true); }}>Editar</DropdownMenuItem>
                         {!isVirt && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
