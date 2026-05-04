@@ -59,6 +59,7 @@ export interface FinTransacao {
   valor: number;
   pago: boolean;
   observacao?: string;
+  fixa?: boolean;           // despesa/receita fixa — repete todo mês
   // referências
   financiamento_id?: string;
   parcela?: number;
