@@ -35,9 +35,10 @@ export interface FinTipo {
 }
 
 export interface FinDivisao {
-  // Distribuição percentual dos ganhos por tipo (soma 100)
-  // map tipo_id -> percentual
+  // Distribuição percentual ou em valor dos ganhos por tipo
+  // map tipo_id -> número
   porcentagens: Record<string, number>;
+  modo?: 'percentual' | 'valor';
 }
 
 export interface FinLimite {
