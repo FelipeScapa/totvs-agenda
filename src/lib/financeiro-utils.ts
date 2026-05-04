@@ -48,6 +48,23 @@ export function gerarTransacoesFinanciamento(f: FinFinanciamento): FinTransacao[
   return out;
 }
 
+// Expande despesas/receitas fixas para todos os meses ≥ data original
+export function expandirFixas(transacoes: FinTransacao[], mes: string): FinTransacao[] {
+  const out: FinTransacao[] = [];
+  const [y, m] = mes.split('-').map(Number);
+  for (const t of transacoes) {
+    if (!t.fixa) continue;
+    if (mesDeData(t.data) >= mes) continue; // já existe nesse mês ou é futuro relativo
+    const orig = new Date(t.data);
+    const novaData = new Date(y, m - 1, Math.min(orig.getDate(), 28));
+    const dataStr = `${novaData.getFullYear()}-${String(novaData.getMonth() + 1).padStart(2, '0')}-${String(novaData.getDate()).padStart(2, '0')}`;
+    const id = `fix-${t.id}-${mes}`;
+    if (transacoes.some(r => r.id === id)) continue;
+    out.push({ ...t, id, data: dataStr, pago: false, fixa: true });
+  }
+  return out;
+}
+
 // Compõe transações reais + financiamentos virtuais (excluindo IDs já materializados)
 export function transacoesComFinanciamentos(
   transacoes: FinTransacao[],
@@ -63,8 +80,19 @@ export function transacoesComFinanciamentos(
   return [...transacoes, ...virt];
 }
 
-export function saldoConta(conta: FinConta, transacoes: FinTransacao[]): number {
-  const movs = transacoes.filter(t => t.conta_id === conta.id && t.pago);
+// Versão completa: real + financiamentos + fixas projetadas no mês informado
+export function todasComProjecao(
+  transacoes: FinTransacao[],
+  financiamentos: FinFinanciamento[],
+  mes: string,
+): FinTransacao[] {
+  const base = transacoesComFinanciamentos(transacoes, financiamentos);
+  const fixas = expandirFixas(transacoes, mes);
+  return [...base, ...fixas];
+}
+
+export function saldoConta(conta: FinConta, transacoes: FinTransacao[], incluirPrevistos = false): number {
+  const movs = transacoes.filter(t => t.conta_id === conta.id && (incluirPrevistos || t.pago));
   const delta = movs.reduce((s, t) => s + (t.movimento === 'RECEITA' ? t.valor : -t.valor), 0);
   return conta.saldo_inicial + delta;
 }

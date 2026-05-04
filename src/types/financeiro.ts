@@ -22,7 +22,8 @@ export interface FinCategoria {
   id: string;
   nome: string;
   movimento: FinTipoMov;
-  parent_id?: string;             // subcategoria
+  parent_id?: string;             // subcategoria (legado)
+  tipo_id?: string;               // Tipo padrão (Essencial/Qualidade/Investimento) — só DESPESA
   somar_nos_ganhos?: boolean;     // só para RECEITA
   cor?: string;
 }
@@ -34,9 +35,10 @@ export interface FinTipo {
 }
 
 export interface FinDivisao {
-  // Distribuição percentual dos ganhos por tipo (soma 100)
-  // map tipo_id -> percentual
+  // Distribuição percentual ou em valor dos ganhos por tipo
+  // map tipo_id -> número
   porcentagens: Record<string, number>;
+  modo?: 'percentual' | 'valor';
 }
 
 export interface FinLimite {
@@ -57,6 +59,7 @@ export interface FinTransacao {
   valor: number;
   pago: boolean;
   observacao?: string;
+  fixa?: boolean;           // despesa/receita fixa — repete todo mês
   // referências
   financiamento_id?: string;
   parcela?: number;

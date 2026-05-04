@@ -10,14 +10,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MesSelector } from './MesSelector';
 import { MultiSelect } from '@/components/MultiSelect';
-import { fmtBRL, mesAtual, mesDeData, transacoesComFinanciamentos, saldoConta } from '@/lib/financeiro-utils';
+import { fmtBRL, mesAtual, mesDeData, todasComProjecao, saldoConta } from '@/lib/financeiro-utils';
 import { FinTransacao, FinTipoMov } from '@/types/financeiro';
-import { Plus, MoreVertical, X, Wallet, TrendingUp, TrendingDown, Scale, Filter } from 'lucide-react';
+import { Plus, MoreVertical, X, Wallet, TrendingUp, TrendingDown, Scale, Filter, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Repeat } from 'lucide-react';
 
 interface Props {
   movimentoInicial?: FinTipoMov | null;
   mesInicial?: string;
 }
+
+type SortKey = 'data' | 'descricao' | 'categoria' | 'tipo' | 'conta' | 'valor' | 'status';
 
 export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props) {
   const { transacoes, add, update, remove } = useFinTransacoes();
@@ -38,21 +40,40 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<FinTransacao | null>(null);
+  const [efetivar, setEfetivar] = useState<FinTransacao | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>('data');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  const todas = useMemo(() => transacoesComFinanciamentos(transacoes, financiamentos), [transacoes, financiamentos]);
-
+  const todas = useMemo(() => todasComProjecao(transacoes, financiamentos, mes), [transacoes, financiamentos, mes]);
   const doMes = useMemo(() => todas.filter(t => mesDeData(t.data) === mes), [todas, mes]);
 
   const filtradas = useMemo(() => {
-    return doMes.filter(t => {
+    const list = doMes.filter(t => {
       if (filtros.movimento.length && !filtros.movimento.includes(t.movimento)) return false;
       if (filtros.categorias.length && !filtros.categorias.includes(t.categoria_id)) return false;
       if (filtros.contas.length && !filtros.contas.includes(t.conta_id)) return false;
       if (filtros.tipos.length && !filtros.tipos.includes(t.tipo_id ?? '')) return false;
       if (filtros.status.length && !filtros.status.includes(t.pago ? 'PAGO' : 'PENDENTE')) return false;
       return true;
-    }).sort((a, b) => a.data.localeCompare(b.data));
-  }, [doMes, filtros]);
+    });
+    const get = (t: FinTransacao): string | number => {
+      switch (sortKey) {
+        case 'descricao': return t.descricao.toLowerCase();
+        case 'categoria': return categorias.find(c => c.id === t.categoria_id)?.nome.toLowerCase() ?? '';
+        case 'tipo': return tipos.find(p => p.id === t.tipo_id)?.nome.toLowerCase() ?? '';
+        case 'conta': return contas.find(c => c.id === t.conta_id)?.nome.toLowerCase() ?? '';
+        case 'valor': return t.valor;
+        case 'status': return t.pago ? 1 : 0;
+        default: return t.data;
+      }
+    };
+    return list.sort((a, b) => {
+      const va = get(a), vb = get(b);
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [doMes, filtros, sortKey, sortDir, categorias, tipos, contas]);
 
   const totais = useMemo(() => {
     const valorAtual = contas.filter(c => c.somar_no_total).reduce((s, c) => s + saldoConta(c, transacoes), 0);
@@ -65,32 +86,46 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
     };
     const r = calc('RECEITA');
     const d = calc('DESPESA');
-    return {
-      valorAtual,
-      receita: r,
-      despesa: d,
-      balancoEfet: r.efetivado - d.efetivado,
-      balancoPrev: r.previsto - d.previsto,
-    };
+    return { valorAtual, receita: r, despesa: d, balancoEfet: r.efetivado - d.efetivado, balancoPrev: r.previsto - d.previsto };
   }, [filtradas, contas, transacoes]);
 
   const limparFiltros = () => setFiltros({ categorias: [], contas: [], tipos: [], status: [], movimento: [] });
 
-  const handleSave = (t: Omit<FinTransacao, 'id' | 'data_criacao'>) => {
+  const handleSave = (t: Omit<FinTransacao, 'id' | 'data_criacao'>, novo = false) => {
     if (editing) update(editing.id, t);
     else add(t);
-    setOpen(false);
-    setEditing(null);
+    if (novo) {
+      setEditing(null);
+      // mantém aberto e reseta nas próximas linhas via key change
+    } else {
+      setOpen(false);
+      setEditing(null);
+    }
   };
 
   const togglePago = (t: FinTransacao) => {
-    if (t.financiamento_id && !transacoes.some(r => r.id === t.id)) {
-      // materializar
-      add({ ...t, pago: !t.pago } as any);
+    const isReal = transacoes.some(r => r.id === t.id);
+    if (!isReal) {
+      const { id, data_criacao, ...rest } = t;
+      add({ ...rest, pago: !t.pago });
     } else {
       update(t.id, { pago: !t.pago });
     }
   };
+
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(k); setSortDir('asc'); }
+  };
+
+  const SortHeader = ({ k, label, align = 'left' }: { k: SortKey; label: string; align?: 'left' | 'right' | 'center' }) => (
+    <th className={`p-2 text-${align}`}>
+      <button onClick={() => toggleSort(k)} className="inline-flex items-center gap-1 hover:text-foreground">
+        {label}
+        {sortKey === k ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+      </button>
+    </th>
+  );
 
   return (
     <div className="space-y-4">
@@ -108,36 +143,11 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
 
       <div className="glass-card p-3 flex items-center gap-2 flex-wrap">
         <Filter className="w-3 h-3 text-muted-foreground" />
-        <MultiSelect
-          options={[{ value: 'RECEITA', label: 'Receita' }, { value: 'DESPESA', label: 'Despesa' }]}
-          selected={filtros.movimento}
-          onChange={v => setFiltros({ ...filtros, movimento: v })}
-          placeholder="Movimento" className="w-32"
-        />
-        <MultiSelect
-          options={categorias.map(c => ({ value: c.id, label: c.nome }))}
-          selected={filtros.categorias}
-          onChange={v => setFiltros({ ...filtros, categorias: v })}
-          placeholder="Categorias" className="w-40"
-        />
-        <MultiSelect
-          options={contas.map(c => ({ value: c.id, label: c.nome }))}
-          selected={filtros.contas}
-          onChange={v => setFiltros({ ...filtros, contas: v })}
-          placeholder="Contas" className="w-36"
-        />
-        <MultiSelect
-          options={tipos.map(t => ({ value: t.id, label: t.nome }))}
-          selected={filtros.tipos}
-          onChange={v => setFiltros({ ...filtros, tipos: v })}
-          placeholder="Tipos" className="w-36"
-        />
-        <MultiSelect
-          options={[{ value: 'PAGO', label: 'Pago' }, { value: 'PENDENTE', label: 'Pendente' }]}
-          selected={filtros.status}
-          onChange={v => setFiltros({ ...filtros, status: v })}
-          placeholder="Status" className="w-32"
-        />
+        <MultiSelect options={[{ value: 'RECEITA', label: 'Receita' }, { value: 'DESPESA', label: 'Despesa' }]} selected={filtros.movimento} onChange={v => setFiltros({ ...filtros, movimento: v })} placeholder="Movimento" className="w-32" />
+        <MultiSelect options={categorias.map(c => ({ value: c.id, label: c.nome }))} selected={filtros.categorias} onChange={v => setFiltros({ ...filtros, categorias: v })} placeholder="Categorias" className="w-40" />
+        <MultiSelect options={contas.map(c => ({ value: c.id, label: c.nome }))} selected={filtros.contas} onChange={v => setFiltros({ ...filtros, contas: v })} placeholder="Contas" className="w-36" />
+        <MultiSelect options={tipos.map(t => ({ value: t.id, label: t.nome }))} selected={filtros.tipos} onChange={v => setFiltros({ ...filtros, tipos: v })} placeholder="Tipos" className="w-36" />
+        <MultiSelect options={[{ value: 'PAGO', label: 'Pago' }, { value: 'PENDENTE', label: 'Pendente' }]} selected={filtros.status} onChange={v => setFiltros({ ...filtros, status: v })} placeholder="Status" className="w-32" />
         {(filtros.categorias.length || filtros.contas.length || filtros.tipos.length || filtros.status.length || filtros.movimento.length) ? (
           <Button variant="ghost" size="sm" onClick={limparFiltros} className="h-8"><X className="w-3 h-3 mr-1" /> Limpar</Button>
         ) : null}
@@ -147,13 +157,13 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
         <table className="w-full text-sm">
           <thead className="text-xs uppercase text-muted-foreground border-b border-border">
             <tr>
-              <th className="text-left p-2">Data</th>
-              <th className="text-left p-2">Descrição</th>
-              <th className="text-left p-2">Categoria</th>
-              <th className="text-left p-2">Tipo</th>
-              <th className="text-left p-2">Conta</th>
-              <th className="text-right p-2">Valor</th>
-              <th className="text-center p-2">Status</th>
+              <SortHeader k="data" label="Data" />
+              <SortHeader k="descricao" label="Descrição" />
+              <SortHeader k="categoria" label="Categoria" />
+              <SortHeader k="tipo" label="Tipo" />
+              <SortHeader k="conta" label="Conta" />
+              <SortHeader k="valor" label="Valor" align="right" />
+              <SortHeader k="status" label="Status" align="center" />
               <th className="w-10"></th>
             </tr>
           </thead>
@@ -169,7 +179,12 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
               return (
                 <tr key={t.id} className="border-b border-border/30 hover:bg-accent/40">
                   <td className="p-2 font-mono text-xs">{t.data.split('-').reverse().join('/')}</td>
-                  <td className="p-2">{t.descricao} {isVirt && <span className="text-[10px] text-muted-foreground ml-1">(financ.)</span>}</td>
+                  <td className="p-2">
+                    {t.descricao}
+                    {isVirt && t.financiamento_id && <span className="text-[10px] text-muted-foreground ml-1">(financ.)</span>}
+                    {isVirt && t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
+                    {!isVirt && t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
+                  </td>
                   <td className="p-2">{cat?.nome ?? '—'}</td>
                   <td className="p-2 text-muted-foreground">{tipo?.nome ?? '—'}</td>
                   <td className="p-2 text-muted-foreground">{conta?.nome ?? '—'}</td>
@@ -182,13 +197,18 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
                     </button>
                   </td>
                   <td className="p-2 text-center">
-                    {!isVirt && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="w-4 h-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setEditing(t); setOpen(true); }}>Editar</DropdownMenuItem>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="w-4 h-4" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {!t.pago && (
+                          <DropdownMenuItem onClick={() => setEfetivar(t)} className="gap-2">
+                            <CheckCircle2 className="w-3 h-3" /> Efetivar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => { setEditing(isVirt ? null : t); setOpen(true); }}>Editar</DropdownMenuItem>
+                        {!isVirt && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive">Excluir</DropdownMenuItem>
@@ -204,9 +224,9 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               );
@@ -216,10 +236,27 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
       </div>
 
       <TransacaoForm
+        key={editing?.id ?? 'novo'}
         open={open}
         onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}
         editing={editing}
         onSave={handleSave}
+      />
+
+      <EfetivarDialog
+        transacao={efetivar}
+        onClose={() => setEfetivar(null)}
+        onConfirm={(patch) => {
+          if (!efetivar) return;
+          const isReal = transacoes.some(r => r.id === efetivar.id);
+          if (isReal) {
+            update(efetivar.id, { ...patch, pago: true });
+          } else {
+            const { id, data_criacao, ...rest } = efetivar;
+            add({ ...rest, ...patch, pago: true });
+          }
+          setEfetivar(null);
+        }}
       />
     </div>
   );
@@ -238,39 +275,37 @@ function CardTotal({ icon: Icon, label, value, sub, color }: { icon: any; label:
   );
 }
 
-function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean; onOpenChange: (v: boolean) => void; editing: FinTransacao | null; onSave: (t: Omit<FinTransacao, 'id' | 'data_criacao'>) => void }) {
+function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean; onOpenChange: (v: boolean) => void; editing: FinTransacao | null; onSave: (t: Omit<FinTransacao, 'id' | 'data_criacao'>, novo?: boolean) => void }) {
   const { contas } = useFinContas();
   const { categorias } = useFinCategorias();
   const { tipos } = useFinTipos();
-  const [form, setForm] = useState<Omit<FinTransacao, 'id' | 'data_criacao'>>({
+  const empty = (): Omit<FinTransacao, 'id' | 'data_criacao'> => ({
     data: new Date().toISOString().slice(0, 10),
-    descricao: '',
-    movimento: 'DESPESA',
-    categoria_id: '',
-    tipo_id: '',
-    conta_id: '',
-    valor: 0,
-    pago: true,
+    descricao: '', movimento: 'DESPESA', categoria_id: '', tipo_id: '', conta_id: contas[0]?.id ?? '', valor: 0, pago: true, fixa: false,
   });
+  const [form, setForm] = useState<Omit<FinTransacao, 'id' | 'data_criacao'>>(empty());
 
   useEffect(() => {
-    if (editing) {
+    if (editing && editing.id) {
       const { id, data_criacao, ...rest } = editing;
       setForm(rest);
     } else {
-      setForm({
-        data: new Date().toISOString().slice(0, 10),
-        descricao: '', movimento: 'DESPESA', categoria_id: '', tipo_id: '', conta_id: contas[0]?.id ?? '', valor: 0, pago: true,
-      });
+      setForm(empty());
     }
-  }, [editing, open, contas]);
+  }, [editing, open]);
 
   const catsFiltradas = categorias.filter(c => c.movimento === form.movimento);
+  const valid = form.descricao.trim() && form.conta_id && form.categoria_id;
+
+  const submit = (novo: boolean) => {
+    onSave(form, novo);
+    if (novo) setForm(empty());
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>{editing ? 'Editar transação' : 'Nova transação'}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editing?.id ? 'Editar transação' : 'Nova transação'}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -295,10 +330,13 @@ function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean;
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Categoria</Label>
-              <Select value={form.categoria_id || ''} onValueChange={v => setForm({ ...form, categoria_id: v })}>
+              <Select value={form.categoria_id || ''} onValueChange={v => {
+                const cat = categorias.find(c => c.id === v);
+                setForm({ ...form, categoria_id: v, tipo_id: cat?.tipo_id ?? form.tipo_id });
+              }}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {catsFiltradas.map(c => <SelectItem key={c.id} value={c.id}>{c.parent_id ? '↳ ' : ''}{c.nome}</SelectItem>)}
+                  {catsFiltradas.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -329,14 +367,60 @@ function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean;
               <Input type="number" step="0.01" value={form.valor} onChange={e => setForm({ ...form, valor: Number(e.target.value) || 0 })} />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={form.pago} onCheckedChange={v => setForm({ ...form, pago: !!v })} />
-            Pago / efetivado
-          </label>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={form.pago} onCheckedChange={v => setForm({ ...form, pago: !!v })} />
+              Pago / efetivado
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={!!form.fixa} onCheckedChange={v => setForm({ ...form, fixa: !!v })} />
+              Despesa/Receita fixa (repete todo mês)
+            </label>
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          {!editing?.id && (
+            <Button variant="secondary" onClick={() => submit(true)} disabled={!valid}>Salvar + incluir outra</Button>
+          )}
+          <Button onClick={() => submit(false)} disabled={!valid}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EfetivarDialog({ transacao, onClose, onConfirm }: { transacao: FinTransacao | null; onClose: () => void; onConfirm: (patch: { valor: number; data: string; conta_id: string }) => void }) {
+  const { contas } = useFinContas();
+  const [valor, setValor] = useState(0);
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [conta, setConta] = useState('');
+  useEffect(() => {
+    if (transacao) {
+      setValor(transacao.valor);
+      setData(new Date().toISOString().slice(0, 10));
+      setConta(transacao.conta_id);
+    }
+  }, [transacao]);
+  return (
+    <Dialog open={!!transacao} onOpenChange={v => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Efetivar transação</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">{transacao?.descricao}</p>
+          <div><Label>Valor</Label><Input type="number" step="0.01" value={valor} onChange={e => setValor(Number(e.target.value) || 0)} /></div>
+          <div><Label>Data</Label><Input type="date" value={data} onChange={e => setData(e.target.value)} /></div>
+          <div>
+            <Label>Conta</Label>
+            <Select value={conta} onValueChange={setConta}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{contas.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onSave(form)} disabled={!form.descricao.trim() || !form.conta_id}>Salvar</Button>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onConfirm({ valor, data, conta_id: conta })}>Efetivar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
