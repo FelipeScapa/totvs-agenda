@@ -7,9 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Trash2, ChevronRight, ArrowLeft, Pencil, MoreVertical, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, ArrowLeft, Pencil, MoreVertical, CheckCircle2, Users } from 'lucide-react';
 import { fmtBRL, gerarTransacoesFinanciamento, mesAtual } from '@/lib/financeiro-utils';
-import { FinFinanciamento, FinTransacao } from '@/types/financeiro';
+import { FinFinanciamento, FinTransacao, FinFinanciamentoPessoa } from '@/types/financeiro';
+import { PessoasEditor } from './PessoasEditor';
 
 export function FinFinanciamentosView() {
   const { financiamentos, add, update, remove } = useFinFinanciamentos();
@@ -22,9 +23,10 @@ export function FinFinanciamentosView() {
   const catsDespesa = categorias.filter(c => c.movimento === 'DESPESA');
 
   const empty = (): Omit<FinFinanciamento, 'id' | 'data_criacao'> => ({
-    descricao: '', conta_id: '', categoria_id: '', tipo_id: '', valor_parcela: 0, total_parcelas: 12, parcela_atual: 1, mes_referencia: mesAtual(), dia_vencimento: 5,
+    descricao: '', conta_id: '', categoria_id: '', tipo_id: '', valor_parcela: 0, total_parcelas: 12, parcela_atual: 1, mes_referencia: mesAtual(), dia_vencimento: 5, pessoas: [],
   });
   const [form, setForm] = useState(empty());
+  const [modoPess, setModoPess] = useState<'percentual' | 'valor'>('percentual');
 
   useEffect(() => {
     if (editing) {

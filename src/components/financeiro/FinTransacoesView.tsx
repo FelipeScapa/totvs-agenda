@@ -183,8 +183,8 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
                   <td className="p-2">
                     {t.descricao}
                     {isVirt && t.financiamento_id && <span className="text-[10px] text-muted-foreground ml-1">(financ.)</span>}
-                    {isVirt && t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
-                    {!isVirt && t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
+                    {t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
+                    {t.pessoas && t.pessoas.length > 0 && <span className="text-[10px] text-cyan-400 ml-1 inline-flex items-center gap-0.5" title={`${t.pessoas.length} devedor(es)`}><Users className="w-2.5 h-2.5" />{t.pessoas.length}</span>}
                   </td>
                   <td className="p-2">{cat?.nome ?? '—'}</td>
                   <td className="p-2 text-muted-foreground">{tipo?.nome ?? '—'}</td>
