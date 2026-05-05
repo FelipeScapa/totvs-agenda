@@ -135,8 +135,15 @@ export function FinFinanciamentosView() {
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{tipos.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}</SelectContent>
                 </Select>
-              </div>
             </div>
+            <PessoasEditor
+              valorTotal={form.valor_parcela}
+              modo={modoPess}
+              onModoChange={setModoPess}
+              pessoas={form.pessoas ?? []}
+              onChange={ps => setForm({ ...form, pessoas: ps })}
+            />
+          </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
