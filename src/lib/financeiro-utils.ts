@@ -39,13 +39,41 @@ export function gerarTransacoesFinanciamento(f: FinFinanciamento): FinTransacao[
       tipo_id: f.tipo_id,
       conta_id: f.conta_id,
       valor: f.valor_parcela,
-      pago: i < f.parcela_atual, // parcelas anteriores marcadas como pagas
+      pago: i < f.parcela_atual,
       financiamento_id: f.id,
       parcela: i,
+      pessoas: f.pessoas,
       data_criacao: f.data_criacao,
     });
   }
   return out;
+}
+
+// Calcula valor que cada pessoa deve em uma transação
+export function valorDevedor(t: FinTransacao, nome: string): number {
+  const p = t.pessoas?.find(x => x.nome === nome);
+  if (!p) return 0;
+  if (p.porcentagem != null) return t.valor * (p.porcentagem / 100);
+  return p.valor ?? 0;
+}
+
+// Agrega devedores em todas as transações (somente despesas não quitadas pela pessoa)
+export function agregarDevedores(transacoes: FinTransacao[]) {
+  const map = new Map<string, { nome: string; total: number; itens: { transacao: FinTransacao; valor: number }[] }>();
+  for (const t of transacoes) {
+    if (!t.pessoas?.length) continue;
+    for (const p of t.pessoas) {
+      if (!p.nome.trim()) continue;
+      if (t.pessoas_quitadas?.includes(p.nome)) continue;
+      const v = valorDevedor(t, p.nome);
+      if (v <= 0) continue;
+      const cur = map.get(p.nome) ?? { nome: p.nome, total: 0, itens: [] };
+      cur.total += v;
+      cur.itens.push({ transacao: t, valor: v });
+      map.set(p.nome, cur);
+    }
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total);
 }
 
 // Expande despesas/receitas fixas para todos os meses ≥ data original

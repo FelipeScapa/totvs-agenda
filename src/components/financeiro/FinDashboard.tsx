@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useFinTransacoes, useFinContas, useFinCategorias, useFinTipos, useFinLimites, useFinDivisao, useFinFinanciamentos } from '@/hooks/use-financeiro';
-import { fmtBRL, mesAtual, mesDeData, todasComProjecao, saldoConta } from '@/lib/financeiro-utils';
+import { fmtBRL, mesAtual, mesDeData, todasComProjecao, saldoConta, navegarMes, labelMes, agregarDevedores, transacoesComFinanciamentos } from '@/lib/financeiro-utils';
 import { MesSelector } from './MesSelector';
-import { Wallet, TrendingUp, TrendingDown, Scale, Eye, EyeOff } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Scale, Eye, EyeOff, Users } from 'lucide-react';
 import { FinTipoMov } from '@/types/financeiro';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface Props {
   onAbrirContas: () => void;
@@ -74,6 +74,22 @@ export function FinDashboard({ onAbrirContas, onAbrirTransacoes }: Props) {
 
   const limitesMes = limites.filter(l => l.mes === mes);
 
+  const evolucao = useMemo(() => {
+    const out: { mes: string; receita: number; despesa: number; saldo: number }[] = [];
+    for (let i = 0; i < 6; i++) {
+      const cur = navegarMes(mes, -5 + i);
+      const lista = todasComProjecao(transacoes, financiamentos, cur)
+        .filter(t => mesDeData(t.data) === cur && (previsto || t.pago));
+      const r = lista.filter(t => t.movimento === 'RECEITA').reduce((s, t) => s + t.valor, 0);
+      const d = lista.filter(t => t.movimento === 'DESPESA').reduce((s, t) => s + t.valor, 0);
+      out.push({ mes: labelMes(cur).slice(0, 3), receita: r, despesa: d, saldo: r - d });
+    }
+    return out;
+  }, [mes, transacoes, financiamentos, previsto]);
+
+  const devedoresAll = useMemo(() => agregarDevedores(transacoesComFinanciamentos(transacoes, financiamentos)), [transacoes, financiamentos]);
+  const totalDevedores = devedoresAll.reduce((s, g) => s + g.total, 0);
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -129,6 +145,47 @@ export function FinDashboard({ onAbrirContas, onAbrirTransacoes }: Props) {
             );
           })}
           {contas.length === 0 && <p className="text-xs text-muted-foreground col-span-full">Nenhuma conta cadastrada.</p>}
+        </div>
+      </div>
+
+      {/* Devedores resumo */}
+      {devedoresAll.length > 0 && (
+        <div className="glass-card p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2"><Users className="w-4 h-4" /> Devedores</h3>
+            <span className="text-lg font-bold text-amber-400">{fmt(totalDevedores)}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {devedoresAll.slice(0, 8).map(g => (
+              <div key={g.nome} className="rounded-md border border-border bg-card/40 p-2">
+                <p className="text-xs font-medium truncate">{g.nome}</p>
+                <p className="text-sm font-bold text-amber-400">{fmt(g.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{g.itens.length} item(ns)</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Evolução mensal */}
+      <div className="glass-card p-4 space-y-2">
+        <h3 className="text-sm uppercase tracking-wider text-muted-foreground">Evolução (últimos 6 meses)</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={evolucao}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => ocultar ? '••' : `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip
+                contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                formatter={(v: number, n) => [fmt(v), n]}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="receita" name="Receita" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="despesa" name="Despesa" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="saldo" name="Saldo" fill="#6366f1" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

@@ -10,9 +10,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MesSelector } from './MesSelector';
 import { MultiSelect } from '@/components/MultiSelect';
+import { PessoasEditor } from './PessoasEditor';
 import { fmtBRL, mesAtual, mesDeData, todasComProjecao, saldoConta } from '@/lib/financeiro-utils';
-import { FinTransacao, FinTipoMov } from '@/types/financeiro';
-import { Plus, MoreVertical, X, Wallet, TrendingUp, TrendingDown, Scale, Filter, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Repeat } from 'lucide-react';
+import { FinTransacao, FinTipoMov, FinFinanciamentoPessoa } from '@/types/financeiro';
+import { Plus, MoreVertical, X, Wallet, TrendingUp, TrendingDown, Scale, Filter, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Repeat, Users } from 'lucide-react';
 
 interface Props {
   movimentoInicial?: FinTipoMov | null;
@@ -182,8 +183,8 @@ export function FinTransacoesView({ movimentoInicial = null, mesInicial }: Props
                   <td className="p-2">
                     {t.descricao}
                     {isVirt && t.financiamento_id && <span className="text-[10px] text-muted-foreground ml-1">(financ.)</span>}
-                    {isVirt && t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
-                    {!isVirt && t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
+                    {t.fixa && <span className="text-[10px] text-amber-400 ml-1 inline-flex items-center gap-0.5"><Repeat className="w-2.5 h-2.5" />fixa</span>}
+                    {t.pessoas && t.pessoas.length > 0 && <span className="text-[10px] text-cyan-400 ml-1 inline-flex items-center gap-0.5" title={`${t.pessoas.length} devedor(es)`}><Users className="w-2.5 h-2.5" />{t.pessoas.length}</span>}
                   </td>
                   <td className="p-2">{cat?.nome ?? '—'}</td>
                   <td className="p-2 text-muted-foreground">{tipo?.nome ?? '—'}</td>
@@ -281,9 +282,10 @@ function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean;
   const { tipos } = useFinTipos();
   const empty = (): Omit<FinTransacao, 'id' | 'data_criacao'> => ({
     data: new Date().toISOString().slice(0, 10),
-    descricao: '', movimento: 'DESPESA', categoria_id: '', tipo_id: '', conta_id: contas[0]?.id ?? '', valor: 0, pago: true, fixa: false,
+    descricao: '', movimento: 'DESPESA', categoria_id: '', tipo_id: '', conta_id: contas[0]?.id ?? '', valor: 0, pago: true, fixa: false, pessoas: [],
   });
   const [form, setForm] = useState<Omit<FinTransacao, 'id' | 'data_criacao'>>(empty());
+  const [modoPess, setModoPess] = useState<'percentual' | 'valor'>('percentual');
 
   useEffect(() => {
     if (editing && editing.id) {
@@ -377,6 +379,15 @@ function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean;
               Despesa/Receita fixa (repete todo mês)
             </label>
           </div>
+          {form.movimento === 'DESPESA' && (
+            <PessoasEditor
+              valorTotal={form.valor}
+              modo={modoPess}
+              onModoChange={setModoPess}
+              pessoas={form.pessoas ?? []}
+              onChange={ps => setForm({ ...form, pessoas: ps })}
+            />
+          )}
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
