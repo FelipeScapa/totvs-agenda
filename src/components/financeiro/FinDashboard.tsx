@@ -148,6 +148,47 @@ export function FinDashboard({ onAbrirContas, onAbrirTransacoes }: Props) {
         </div>
       </div>
 
+      {/* Devedores resumo */}
+      {devedoresAll.length > 0 && (
+        <div className="glass-card p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2"><Users className="w-4 h-4" /> Devedores</h3>
+            <span className="text-lg font-bold text-amber-400">{fmt(totalDevedores)}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {devedoresAll.slice(0, 8).map(g => (
+              <div key={g.nome} className="rounded-md border border-border bg-card/40 p-2">
+                <p className="text-xs font-medium truncate">{g.nome}</p>
+                <p className="text-sm font-bold text-amber-400">{fmt(g.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{g.itens.length} item(ns)</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Evolução mensal */}
+      <div className="glass-card p-4 space-y-2">
+        <h3 className="text-sm uppercase tracking-wider text-muted-foreground">Evolução (últimos 6 meses)</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={evolucao}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => ocultar ? '••' : `${(v / 1000).toFixed(0)}k`} />
+              <Tooltip
+                contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                formatter={(v: number, n) => [fmt(v), n]}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="receita" name="Receita" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="despesa" name="Despesa" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="saldo" name="Saldo" fill="#6366f1" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <PieCard titulo="Despesas por categoria" itens={porCatDespesa} total={totalDespesa} fmt={fmt} />
         <PieCard titulo="Receitas por categoria" itens={porCatReceita} total={totalReceita} fmt={fmt} />
