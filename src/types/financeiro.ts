@@ -60,6 +60,8 @@ export interface FinTransacao {
   pago: boolean;
   observacao?: string;
   fixa?: boolean;           // despesa/receita fixa — repete todo mês
+  pessoas?: FinFinanciamentoPessoa[];   // devedores que dividem a despesa
+  pessoas_quitadas?: string[];          // nomes já quitados
   // referências
   financiamento_id?: string;
   parcela?: number;
