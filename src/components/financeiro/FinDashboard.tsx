@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useFinTransacoes, useFinContas, useFinCategorias, useFinTipos, useFinLimites, useFinDivisao, useFinFinanciamentos } from '@/hooks/use-financeiro';
-import { fmtBRL, mesAtual, mesDeData, todasComProjecao, saldoConta } from '@/lib/financeiro-utils';
+import { fmtBRL, mesAtual, mesDeData, todasComProjecao, saldoConta, navegarMes, labelMes, agregarDevedores, transacoesComFinanciamentos } from '@/lib/financeiro-utils';
 import { MesSelector } from './MesSelector';
-import { Wallet, TrendingUp, TrendingDown, Scale, Eye, EyeOff } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Scale, Eye, EyeOff, Users } from 'lucide-react';
 import { FinTipoMov } from '@/types/financeiro';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 interface Props {
   onAbrirContas: () => void;
@@ -73,6 +73,22 @@ export function FinDashboard({ onAbrirContas, onAbrirTransacoes }: Props) {
   }, [doMes, tipos, divisao, categorias, modoDiv]);
 
   const limitesMes = limites.filter(l => l.mes === mes);
+
+  const evolucao = useMemo(() => {
+    const out: { mes: string; receita: number; despesa: number; saldo: number }[] = [];
+    for (let i = 0; i < 6; i++) {
+      const cur = navegarMes(mes, -5 + i);
+      const lista = todasComProjecao(transacoes, financiamentos, cur)
+        .filter(t => mesDeData(t.data) === cur && (previsto || t.pago));
+      const r = lista.filter(t => t.movimento === 'RECEITA').reduce((s, t) => s + t.valor, 0);
+      const d = lista.filter(t => t.movimento === 'DESPESA').reduce((s, t) => s + t.valor, 0);
+      out.push({ mes: labelMes(cur).slice(0, 3), receita: r, despesa: d, saldo: r - d });
+    }
+    return out;
+  }, [mes, transacoes, financiamentos, previsto]);
+
+  const devedoresAll = useMemo(() => agregarDevedores(transacoesComFinanciamentos(transacoes, financiamentos)), [transacoes, financiamentos]);
+  const totalDevedores = devedoresAll.reduce((s, g) => s + g.total, 0);
 
   return (
     <div className="space-y-5">
