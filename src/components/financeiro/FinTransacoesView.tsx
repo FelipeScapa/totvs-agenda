@@ -10,9 +10,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MesSelector } from './MesSelector';
 import { MultiSelect } from '@/components/MultiSelect';
+import { PessoasEditor } from './PessoasEditor';
 import { fmtBRL, mesAtual, mesDeData, todasComProjecao, saldoConta } from '@/lib/financeiro-utils';
-import { FinTransacao, FinTipoMov } from '@/types/financeiro';
-import { Plus, MoreVertical, X, Wallet, TrendingUp, TrendingDown, Scale, Filter, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Repeat } from 'lucide-react';
+import { FinTransacao, FinTipoMov, FinFinanciamentoPessoa } from '@/types/financeiro';
+import { Plus, MoreVertical, X, Wallet, TrendingUp, TrendingDown, Scale, Filter, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Repeat, Users } from 'lucide-react';
 
 interface Props {
   movimentoInicial?: FinTipoMov | null;
@@ -281,9 +282,10 @@ function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean;
   const { tipos } = useFinTipos();
   const empty = (): Omit<FinTransacao, 'id' | 'data_criacao'> => ({
     data: new Date().toISOString().slice(0, 10),
-    descricao: '', movimento: 'DESPESA', categoria_id: '', tipo_id: '', conta_id: contas[0]?.id ?? '', valor: 0, pago: true, fixa: false,
+    descricao: '', movimento: 'DESPESA', categoria_id: '', tipo_id: '', conta_id: contas[0]?.id ?? '', valor: 0, pago: true, fixa: false, pessoas: [],
   });
   const [form, setForm] = useState<Omit<FinTransacao, 'id' | 'data_criacao'>>(empty());
+  const [modoPess, setModoPess] = useState<'percentual' | 'valor'>('percentual');
 
   useEffect(() => {
     if (editing && editing.id) {
@@ -377,6 +379,15 @@ function TransacaoForm({ open, onOpenChange, editing, onSave }: { open: boolean;
               Despesa/Receita fixa (repete todo mês)
             </label>
           </div>
+          {form.movimento === 'DESPESA' && (
+            <PessoasEditor
+              valorTotal={form.valor}
+              modo={modoPess}
+              onModoChange={setModoPess}
+              pessoas={form.pessoas ?? []}
+              onChange={ps => setForm({ ...form, pessoas: ps })}
+            />
+          )}
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
