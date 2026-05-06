@@ -114,6 +114,9 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setFeriadosOpen(true)} className="gap-1" title="Férias e Feriados">
+              <Plane className="w-4 h-4" /> <span className="hidden md:inline">Férias/Feriados</span>
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setBackupOpen(true)} className="gap-1" title="Backup / Restaurar">
               <Database className="w-4 h-4" /> <span className="hidden md:inline">Backup</span>
             </Button>
@@ -192,7 +195,14 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="calendario">
-            <CalendarView atendimentos={atendimentos} onAtendimentoClick={handleEdit} />
+            <CalendarView
+              atendimentos={atendimentos}
+              onAtendimentoClick={handleEdit}
+              filters={filters}
+              setFilters={setFilters}
+              ocultarValores={ocultarValores}
+              onToggleOcultar={() => setOcultarValores(v => !v)}
+            />
           </TabsContent>
 
           <TabsContent value="pendencias">
