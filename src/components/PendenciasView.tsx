@@ -93,6 +93,16 @@ export function PendenciasView() {
             <SelectItem value="CONCLUIDA">Concluída</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={ordem} onValueChange={(v) => setOrdem(v as OrdemKey)}>
+          <SelectTrigger className="w-52 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="STATUS_PRIORIDADE">Status + Prioridade</SelectItem>
+            <SelectItem value="PRIORIDADE">Por prioridade</SelectItem>
+            <SelectItem value="STATUS">Por status</SelectItem>
+            <SelectItem value="PRAZO">Por prazo</SelectItem>
+            <SelectItem value="CRIACAO">Mais recentes</SelectItem>
+          </SelectContent>
+        </Select>
         <div className="ml-auto">
           <Button size="sm" onClick={() => { setEditando(null); setOpen(true); }} className="gap-1">
             <Plus className="w-4 h-4" /> Nova pendência
