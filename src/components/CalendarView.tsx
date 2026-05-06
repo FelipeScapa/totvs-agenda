@@ -102,19 +102,20 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
     <div className="space-y-4">
       {/* Toggle ocultar */}
       <div className="flex justify-end">
-        <Button variant="ghost" size="sm" onClick={() => setOcultarValores(v => !v)} className="gap-1 text-xs text-muted-foreground">
+        <Button variant="ghost" size="sm" onClick={onToggleOcultar} className="gap-1 text-xs text-muted-foreground">
           {!ocultarValores ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
           {!ocultarValores ? 'Ocultar valores' : 'Mostrar valores'}
         </Button>
       </div>
 
       {/* Dashboard cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
         <StatCard icon={Clock} label="Horas" value={stats.totalHoras.toFixed(1)} color="text-primary" />
         <StatCard icon={DollarSign} label="Valor" value={ocultarValores ? '••••••' : `R$ ${stats.valorTotal.toFixed(2)}`} color="text-primary" />
         <StatCard icon={Clock} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
         <StatCard icon={Clock} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
+        <StatCard icon={Plane} label="Não computados" value={String(stats.naoComputados)} color="text-cyan-400" />
       </div>
 
       {/* Status totalizer */}
