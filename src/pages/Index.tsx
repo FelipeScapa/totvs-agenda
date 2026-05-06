@@ -213,6 +213,7 @@ const Index = () => {
       </main>
 
       <BackupManager open={backupOpen} onOpenChange={setBackupOpen} />
+      <FeriadosManager open={feriadosOpen} onOpenChange={setFeriadosOpen} />
 
       <AtendimentoForm
         open={formOpen}
