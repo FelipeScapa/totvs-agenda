@@ -14,8 +14,9 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, Activity, Users, Tag, Briefcase, Copy, ListTodo, CalendarRange, Wallet, Database } from 'lucide-react';
+import { Plus, Activity, Users, Tag, Briefcase, Copy, ListTodo, CalendarRange, Wallet, Database, Plane } from 'lucide-react';
 import { BackupManager } from '@/components/BackupManager';
+import { FeriadosManager } from '@/components/FeriadosManager';
 import { FinanceiroApp } from '@/components/financeiro/FinanceiroApp';
 import { STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
 import { cn } from '@/lib/utils';
@@ -24,7 +25,6 @@ import { gerarTextoAgenda } from '@/lib/atendimento-utils';
 
 const STATUS_DOT: Record<string, string> = {
   REGISTRADO: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  AGUARDANDO_AGENDA: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   EMAIL_ENVIADO: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   AGENDA_CRIADA: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   APONTADO: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -41,6 +41,7 @@ const Index = () => {
   const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
   const [ocultarValores, setOcultarValores] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [feriadosOpen, setFeriadosOpen] = useState(false);
   const [appTab, setAppTab] = useState<'agenda' | 'financeiro'>('agenda');
 
   const atendimentosFiltrados = useMemo(() => {
@@ -113,6 +114,9 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setFeriadosOpen(true)} className="gap-1" title="Férias e Feriados">
+              <Plane className="w-4 h-4" /> <span className="hidden md:inline">Férias/Feriados</span>
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setBackupOpen(true)} className="gap-1" title="Backup / Restaurar">
               <Database className="w-4 h-4" /> <span className="hidden md:inline">Backup</span>
             </Button>
@@ -191,7 +195,14 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="calendario">
-            <CalendarView atendimentos={atendimentos} onAtendimentoClick={handleEdit} />
+            <CalendarView
+              atendimentos={atendimentos}
+              onAtendimentoClick={handleEdit}
+              filters={filters}
+              setFilters={setFilters}
+              ocultarValores={ocultarValores}
+              onToggleOcultar={() => setOcultarValores(v => !v)}
+            />
           </TabsContent>
 
           <TabsContent value="pendencias">
@@ -202,6 +213,7 @@ const Index = () => {
       </main>
 
       <BackupManager open={backupOpen} onOpenChange={setBackupOpen} />
+      <FeriadosManager open={feriadosOpen} onOpenChange={setFeriadosOpen} />
 
       <AtendimentoForm
         open={formOpen}

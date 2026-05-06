@@ -32,11 +32,17 @@ const PRIO_COLORS: Record<string, string> = {
   ALTA: 'bg-destructive/20 text-destructive border-destructive/30',
 };
 
+type OrdemKey = 'STATUS_PRIORIDADE' | 'PRIORIDADE' | 'STATUS' | 'PRAZO' | 'CRIACAO';
+
+const PRIO_RANK = { ALTA: 0, MEDIA: 1, BAIXA: 2 };
+const STATUS_RANK = { EM_ANDAMENTO: 0, ABERTA: 1, CONCLUIDA: 2 };
+
 export function PendenciasView() {
   const { pendencias, adicionar, atualizar, remover } = usePendencias();
   const { clientes } = useClientes();
   const [filtroCliente, setFiltroCliente] = useState<string>('TODOS');
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [ordem, setOrdem] = useState<OrdemKey>('STATUS_PRIORIDADE');
   const [open, setOpen] = useState(false);
   const [editando, setEditando] = useState<Pendencia | null>(null);
 
@@ -44,10 +50,22 @@ export function PendenciasView() {
     .filter(p => filtroCliente === 'TODOS' || p.cliente === filtroCliente)
     .filter(p => filtroStatus === 'TODOS' || p.status === filtroStatus)
     .sort((a, b) => {
-      if (a.status === 'CONCLUIDA' && b.status !== 'CONCLUIDA') return 1;
-      if (a.status !== 'CONCLUIDA' && b.status === 'CONCLUIDA') return -1;
-      const prio = { ALTA: 0, MEDIA: 1, BAIXA: 2 };
-      return prio[a.prioridade] - prio[b.prioridade];
+      switch (ordem) {
+        case 'PRIORIDADE':
+          return PRIO_RANK[a.prioridade] - PRIO_RANK[b.prioridade];
+        case 'STATUS':
+          return STATUS_RANK[a.status] - STATUS_RANK[b.status];
+        case 'PRAZO':
+          return (a.prazo ?? '9999').localeCompare(b.prazo ?? '9999');
+        case 'CRIACAO':
+          return b.data_criacao.localeCompare(a.data_criacao);
+        case 'STATUS_PRIORIDADE':
+        default: {
+          const s = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+          if (s !== 0) return s;
+          return PRIO_RANK[a.prioridade] - PRIO_RANK[b.prioridade];
+        }
+      }
     });
 
   // agrupado por cliente
@@ -73,6 +91,16 @@ export function PendenciasView() {
             <SelectItem value="ABERTA">Aberta</SelectItem>
             <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
             <SelectItem value="CONCLUIDA">Concluída</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={ordem} onValueChange={(v) => setOrdem(v as OrdemKey)}>
+          <SelectTrigger className="w-52 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="STATUS_PRIORIDADE">Status + Prioridade</SelectItem>
+            <SelectItem value="PRIORIDADE">Por prioridade</SelectItem>
+            <SelectItem value="STATUS">Por status</SelectItem>
+            <SelectItem value="PRAZO">Por prazo</SelectItem>
+            <SelectItem value="CRIACAO">Mais recentes</SelectItem>
           </SelectContent>
         </Select>
         <div className="ml-auto">

@@ -2,17 +2,17 @@ import { Atendimento, STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
 import { diasRestantesPrazo, textoPrazo, calcularValor, formatarData, gerarTextoOS, gerarTextoAgenda, conflitaAgenda } from '@/lib/atendimento-utils';
 import { useTiposAtendimento } from '@/hooks/use-tipos-atendimento';
 import { useServicos } from '@/hooks/use-servicos';
+import { useFeriados } from '@/hooks/use-feriados';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, Copy, FileText, CalendarDays, CopyPlus, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Copy, FileText, CalendarDays, CopyPlus, AlertCircle, Plane } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_COLORS: Record<string, string> = {
   REGISTRADO: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  AGUARDANDO_AGENDA: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   EMAIL_ENVIADO: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   AGENDA_CRIADA: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   APONTADO: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -31,6 +31,7 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
   const { toast } = useToast();
   const { tipos } = useTiposAtendimento();
   const { servicos } = useServicos();
+  const { isDiaNaoComputado } = useFeriados();
 
   const tipoLabel = (id: string) => tipos.find(t => t.id === id)?.label ?? id;
 
@@ -71,6 +72,7 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
         const servico = a.servico_id ? servicos.find(s => s.id === a.servico_id) : null;
         const statusColor = STATUS_COLORS[a.status] || '';
         const conflito = atendimentos.some(b => conflitaAgenda(a, b));
+        const naoComputado = isDiaNaoComputado(a.data);
 
         return (
           <div key={a.id} className="glass-card p-4 flex items-center gap-4 group hover:border-primary/30 transition-colors">
@@ -104,6 +106,11 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
                 {conflito && (
                   <Badge variant="outline" className="bg-destructive/20 text-destructive border-destructive/30 gap-1">
                     <AlertCircle className="w-3 h-3" /> Conflito de horário
+                  </Badge>
+                )}
+                {naoComputado && (
+                  <Badge variant="outline" className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 gap-1">
+                    <Plane className="w-3 h-3" /> {naoComputado.tipo === 'FERIAS' ? 'Férias' : 'Feriado'} · não computa
                   </Badge>
                 )}
               </div>

@@ -3,11 +3,12 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff, Plane } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useServicos } from '@/hooks/use-servicos';
+import { useFeriados } from '@/hooks/use-feriados';
 import { calcularValor, calcularStatusPrazo } from '@/lib/atendimento-utils';
 import { FiltersBar, FiltersState, aplicarFiltros } from '@/components/FiltersBar';
 import { STATUS_FLOW, STATUS_LABELS } from '@/types/atendimento';
@@ -15,6 +16,10 @@ import { STATUS_FLOW, STATUS_LABELS } from '@/types/atendimento';
 interface CalendarViewProps {
   atendimentos: Atendimento[];
   onAtendimentoClick?: (a: Atendimento) => void;
+  filters: FiltersState;
+  setFilters: (f: FiltersState) => void;
+  ocultarValores: boolean;
+  onToggleOcultar: () => void;
 }
 
 type ViewMode = 'mes' | 'semana' | 'dia';
@@ -35,12 +40,11 @@ function colorForCliente(cliente: string): string {
   return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
 }
 
-export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewProps) {
+export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFilters, ocultarValores, onToggleOcultar }: CalendarViewProps) {
   const [view, setView] = useState<ViewMode>('mes');
   const [cursor, setCursor] = useState<Date>(new Date());
   const { servicos } = useServicos();
-  const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
-  const [ocultarValores, setOcultarValores] = useState(false);
+  const { isDiaNaoComputado } = useFeriados();
 
   const filtrados = useMemo(() => aplicarFiltros(atendimentos, filters), [atendimentos, filters]);
 
@@ -53,35 +57,19 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
   };
 
   const stats = useMemo(() => {
-    const totalHoras = filtrados.reduce((s, a) => s + a.duracao_horas, 0);
-    const valorTotal = filtrados.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
-    const porCliente = new Map<string, { horas: number; valor: number; count: number }>();
-    const porServico = new Map<string, { horas: number; valor: number; count: number }>();
+    const computaveis = filtrados.filter(a => !isDiaNaoComputado(a.data));
+    const totalHoras = computaveis.reduce((s, a) => s + a.duracao_horas, 0);
+    const valorTotal = computaveis.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
     const counts: Record<string, number> = {};
     STATUS_FLOW.forEach(s => counts[s] = 0);
-
-    filtrados.forEach(a => {
-      counts[a.status] = (counts[a.status] ?? 0) + 1;
-      const valor = calcularValor(a.duracao_horas, getValorHora(a));
-      const c = porCliente.get(a.cliente) ?? { horas: 0, valor: 0, count: 0 };
-      c.horas += a.duracao_horas; c.valor += valor; c.count++;
-      porCliente.set(a.cliente, c);
-      const sNome = a.servico_id ? (servicos.find(x => x.id === a.servico_id)?.nome ?? '—') : '—';
-      const sv = porServico.get(sNome) ?? { horas: 0, valor: 0, count: 0 };
-      sv.horas += a.duracao_horas; sv.valor += valor; sv.count++;
-      porServico.set(sNome, sv);
-    });
+    filtrados.forEach(a => { counts[a.status] = (counts[a.status] ?? 0) + 1; });
 
     const pendentes = filtrados.filter(a => a.status !== 'APONTADO').length;
     const atrasados = filtrados.filter(a => a.status !== 'APONTADO' && calcularStatusPrazo(a.data) === 'ATRASADO').length;
+    const naoComputados = filtrados.length - computaveis.length;
 
-    return {
-      total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados,
-      porCliente: [...porCliente.entries()].sort((a, b) => b[1].horas - a[1].horas),
-      porServico: [...porServico.entries()].sort((a, b) => b[1].horas - a[1].horas),
-      counts,
-    };
-  }, [filtrados, servicos]);
+    return { total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados, naoComputados, counts };
+  }, [filtrados, servicos, isDiaNaoComputado]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, Atendimento[]>();
@@ -114,19 +102,20 @@ export function CalendarView({ atendimentos, onAtendimentoClick }: CalendarViewP
     <div className="space-y-4">
       {/* Toggle ocultar */}
       <div className="flex justify-end">
-        <Button variant="ghost" size="sm" onClick={() => setOcultarValores(v => !v)} className="gap-1 text-xs text-muted-foreground">
+        <Button variant="ghost" size="sm" onClick={onToggleOcultar} className="gap-1 text-xs text-muted-foreground">
           {!ocultarValores ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
           {!ocultarValores ? 'Ocultar valores' : 'Mostrar valores'}
         </Button>
       </div>
 
       {/* Dashboard cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
         <StatCard icon={Clock} label="Horas" value={stats.totalHoras.toFixed(1)} color="text-primary" />
         <StatCard icon={DollarSign} label="Valor" value={ocultarValores ? '••••••' : `R$ ${stats.valorTotal.toFixed(2)}`} color="text-primary" />
         <StatCard icon={Clock} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
         <StatCard icon={Clock} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
+        <StatCard icon={Plane} label="Não computados" value={String(stats.naoComputados)} color="text-cyan-400" />
       </div>
 
       {/* Status totalizer */}

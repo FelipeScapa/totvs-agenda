@@ -1,6 +1,6 @@
 export type TipoAtendimento = string;
 
-export type StatusAtendimento = 'REGISTRADO' | 'AGUARDANDO_AGENDA' | 'EMAIL_ENVIADO' | 'AGENDA_CRIADA' | 'APONTADO';
+export type StatusAtendimento = 'REGISTRADO' | 'EMAIL_ENVIADO' | 'AGENDA_CRIADA' | 'APONTADO';
 
 export type StatusPrazo = 'OK' | 'ALERTA' | 'ATRASADO';
 
@@ -31,7 +31,6 @@ export const TIPO_LABELS: Record<TipoAtendimento, string> = {
 
 export const STATUS_LABELS: Record<StatusAtendimento, string> = {
   REGISTRADO: 'Registrado',
-  AGUARDANDO_AGENDA: 'Aguardando Agenda',
   EMAIL_ENVIADO: 'E-mail Enviado',
   AGENDA_CRIADA: 'Agenda Criada',
   APONTADO: 'Apontado',
@@ -39,7 +38,6 @@ export const STATUS_LABELS: Record<StatusAtendimento, string> = {
 
 export const STATUS_FLOW: StatusAtendimento[] = [
   'REGISTRADO',
-  'AGUARDANDO_AGENDA',
   'EMAIL_ENVIADO',
   'AGENDA_CRIADA',
   'APONTADO',
