@@ -380,7 +380,14 @@ function DiaView({ cursor, byDate, onClick, getFeriado }: { cursor: Date; byDate
   const px = (min: number) => (min / 60) * HOUR_PX;
 
   return (
-    <div className="glass-card p-3">
+    <div className={cn("glass-card p-3", fs && `${fs.bg} ring-1`)}>
+      {fs && (
+        <div className={cn("flex items-center gap-2 px-3 py-2 mb-2 rounded border", fs.badge)}>
+          <fs.icon className="w-4 h-4" />
+          <span className="font-semibold">{fs.label}</span>
+          <span className="text-xs opacity-80">· {feriado!.descricao}</span>
+        </div>
+      )}
       <div className="relative" style={{ height: `${24 * HOUR_PX}px` }}>
         {hours.map(h => (
           <div key={h} className="absolute left-0 right-0 border-t border-border/30 flex" style={{ top: `${h * HOUR_PX}px` }}>
