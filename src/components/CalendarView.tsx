@@ -193,9 +193,9 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
         </Tabs>
       </div>
 
-      {view === 'mes' && <MesView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
-      {view === 'semana' && <SemanaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
-      {view === 'dia' && <DiaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
+      {view === 'mes' && <MesView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} getFeriado={getFeriado} />}
+      {view === 'semana' && <SemanaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} getFeriado={getFeriado} />}
+      {view === 'dia' && <DiaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} getFeriado={getFeriado} />}
     </div>
   );
 }
