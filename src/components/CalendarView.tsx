@@ -71,6 +71,22 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
     return { total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados, naoComputados, counts };
   }, [filtrados, servicos, isDiaNaoComputado]);
 
+  const previsao = useMemo(() => {
+    const p = periodoFiltro(filters);
+    if (!p.inicio || !p.fim) return null;
+    const start = new Date(p.inicio + 'T00:00:00');
+    const end = new Date(p.fim + 'T00:00:00');
+    let dias = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+      const dow = cur.getDay();
+      const iso = cur.toISOString().slice(0, 10);
+      if (dow >= 1 && dow <= 5 && !isDiaForaPrevisao(iso)) dias++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return { dias, horas: dias * 8, valor: dias * 8 * 26 };
+  }, [filters, isDiaForaPrevisao]);
+
   const byDate = useMemo(() => {
     const map = new Map<string, Atendimento[]>();
     filtrados.forEach(a => {
@@ -111,11 +127,34 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
       {/* Dashboard cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
-        <StatCard icon={Clock} label="Horas" value={stats.totalHoras.toFixed(1)} color="text-primary" />
-        <StatCard icon={DollarSign} label="Valor" value={ocultarValores ? '••••••' : `R$ ${stats.valorTotal.toFixed(2)}`} color="text-primary" />
-        <StatCard icon={Clock} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
-        <StatCard icon={Clock} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
-        <StatCard icon={Plane} label="Não computados" value={String(stats.naoComputados)} color="text-cyan-400" />
+        {/* Mesclado: Horas + Valor */}
+        <div className="glass-card p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Horas / Valor</span>
+          </div>
+          <p className="text-xl font-bold text-primary">{stats.totalHoras.toFixed(1)}<span className="text-xs text-muted-foreground ml-1">h</span></p>
+          <p className="text-sm font-semibold text-primary/80">{ocultarValores ? '••••••' : `R$ ${stats.valorTotal.toFixed(2)}`}</p>
+        </div>
+        <StatCard icon={Timer} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
+        <StatCard icon={AlertTriangle} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
+        <StatCard icon={Plane} label="Férias/Feriados/Folga" value={String(stats.naoComputados)} color="text-cyan-400" />
+        {/* Previsão */}
+        <div className="glass-card p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Previsão</span>
+          </div>
+          {previsao ? (
+            <>
+              <p className="text-xl font-bold text-emerald-400">{previsao.horas}<span className="text-xs text-muted-foreground ml-1">h</span></p>
+              <p className="text-sm font-semibold text-emerald-400/80">{ocultarValores ? '••••••' : `R$ ${previsao.valor.toFixed(2)}`}</p>
+              <p className="text-[10px] text-muted-foreground">{previsao.dias}d × 8h</p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground pt-2">Defina um período</p>
+          )}
+        </div>
       </div>
 
       {/* Status totalizer */}
