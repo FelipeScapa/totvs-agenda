@@ -91,7 +91,6 @@ const Index = () => {
   };
 
   const copiarTudoAgenda = () => {
-    alert('entrou');
     if (atendimentosFiltrados.length === 0) {
       toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
       return;
@@ -114,12 +113,10 @@ const Index = () => {
       partes.push('');
     });
     const texto = partes.join('\n').trimEnd();
-
-    console.log(texto);
     
     alert(texto);
-    alert('entrou');
-    navigator.clipboard.writeText(partes.join('\n').trimEnd());
+    alert('texto deu certo agr arrumar copiar');
+    navigator.clipboard.writeText(texto);
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
   };
 
