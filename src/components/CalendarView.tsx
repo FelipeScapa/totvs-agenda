@@ -3,14 +3,14 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff, Plane } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff, Plane, TrendingUp, PartyPopper, AlertTriangle, Timer } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useServicos } from '@/hooks/use-servicos';
 import { useFeriados } from '@/hooks/use-feriados';
 import { calcularValor, calcularStatusPrazo } from '@/lib/atendimento-utils';
-import { FiltersBar, FiltersState, aplicarFiltros } from '@/components/FiltersBar';
+import { FiltersBar, FiltersState, aplicarFiltros, periodoFiltro } from '@/components/FiltersBar';
 import { STATUS_FLOW, STATUS_LABELS } from '@/types/atendimento';
 
 interface CalendarViewProps {
