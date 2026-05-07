@@ -9,7 +9,7 @@ import { TipoManager } from '@/components/TipoManager';
 import { ServicoManager } from '@/components/ServicoManager';
 import { PendenciasView } from '@/components/PendenciasView';
 import { CalendarView } from '@/components/CalendarView';
-import { FiltersBar, FiltersState, aplicarFiltros } from '@/components/FiltersBar';
+import { FiltersBar, FiltersState, aplicarFiltros, periodoFiltro } from '@/components/FiltersBar';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -149,7 +149,7 @@ const Index = () => {
 
           <TabsContent value="atendimentos" className="space-y-6">
             <QuickMode onSave={adicionar} />
-            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} />
+            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} periodo={periodoFiltro(filters)} />
 
             {/* Totalizador de status (clicável - multi) */}
             <div className="flex flex-wrap gap-2">
