@@ -9,7 +9,7 @@ import { TipoManager } from '@/components/TipoManager';
 import { ServicoManager } from '@/components/ServicoManager';
 import { PendenciasView } from '@/components/PendenciasView';
 import { CalendarView } from '@/components/CalendarView';
-import { FiltersBar, FiltersState, aplicarFiltros } from '@/components/FiltersBar';
+import { FiltersBar, FiltersState, aplicarFiltros, periodoFiltro } from '@/components/FiltersBar';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -95,9 +95,25 @@ const Index = () => {
       toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
       return;
     }
-    const texto = atendimentosFiltrados.map(gerarTextoAgenda).join('\n\n');
-    navigator.clipboard.writeText(texto);
-    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas copiadas.` });
+    const grupos = new Map<string, typeof atendimentosFiltrados>();
+    atendimentosFiltrados.forEach(a => {
+      const arr = grupos.get(a.cliente) ?? [];
+      arr.push(a);
+      grupos.set(a.cliente, arr);
+    });
+    const formatarData = (d: string) => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
+    const partes: string[] = [];
+    grupos.forEach((lista, cliente) => {
+      partes.push(`Cliente: ${cliente}`);
+      lista
+        .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio))
+        .forEach(a => {
+          partes.push(`${formatarData(a.data)} - ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)`);
+        });
+      partes.push('');
+    });
+    navigator.clipboard.writeText(partes.join('\n').trimEnd());
+    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por cliente.` });
   };
 
   return (
@@ -149,7 +165,7 @@ const Index = () => {
 
           <TabsContent value="atendimentos" className="space-y-6">
             <QuickMode onSave={adicionar} />
-            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} />
+            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} periodo={periodoFiltro(filters)} />
 
             {/* Totalizador de status (clicável - multi) */}
             <div className="flex flex-wrap gap-2">

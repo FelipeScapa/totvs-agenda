@@ -3,18 +3,43 @@ import { Atendimento } from '@/types/atendimento';
 import { calcularValor, calcularStatusPrazo } from '@/lib/atendimento-utils';
 import { useServicos } from '@/hooks/use-servicos';
 import { useFeriados } from '@/hooks/use-feriados';
-import { Clock, DollarSign, AlertTriangle, FileText, Timer, Eye, EyeOff, Plane } from 'lucide-react';
+import { Clock, DollarSign, AlertTriangle, FileText, Timer, Eye, EyeOff, Plane, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface DashboardCardsProps {
   atendimentos: Atendimento[];
   ocultarValores: boolean;
   onToggleOcultar: () => void;
+  periodo?: { inicio?: string; fim?: string };
 }
 
-export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar }: DashboardCardsProps) {
+const HORAS_DIA_UTIL = 8;
+
+function calcularPrevisao(
+  inicio: string | undefined,
+  fim: string | undefined,
+  isDiaForaPrevisao: (d: string) => boolean,
+  valorHoraDefault: number
+) {
+  if (!inicio || !fim) return null;
+  const start = new Date(inicio + 'T00:00:00');
+  const end = new Date(fim + 'T00:00:00');
+  if (start > end) return null;
+  let dias = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const dow = cur.getDay(); // 0=dom, 6=sab
+    const iso = cur.toISOString().slice(0, 10);
+    if (dow >= 1 && dow <= 5 && !isDiaForaPrevisao(iso)) dias++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  const horas = dias * HORAS_DIA_UTIL;
+  return { dias, horas, valor: horas * valorHoraDefault };
+}
+
+export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, periodo }: DashboardCardsProps) {
   const { servicos } = useServicos();
-  const { isDiaNaoComputado } = useFeriados();
+  const { isDiaNaoComputado, isDiaForaPrevisao } = useFeriados();
 
   const getValorHora = (a: Atendimento) => {
     if (a.servico_id) {
@@ -41,16 +66,12 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar }
     };
   }, [atendimentos, servicos, isDiaNaoComputado]);
 
-  const ocultar = (valor: string) => !ocultarValores ? valor : '••••••';
+  const previsao = useMemo(
+    () => calcularPrevisao(periodo?.inicio, periodo?.fim, (d) => isDiaForaPrevisao(d), 26),
+    [periodo?.inicio, periodo?.fim, isDiaForaPrevisao]
+  );
 
-  const cards = [
-    { label: 'Atendimentos', value: String(stats.total), sub: 'no período filtrado', icon: FileText, color: 'text-foreground' },
-    { label: 'Horas totais', value: stats.totalHoras.toFixed(1), sub: 'horas computadas', icon: Clock, color: 'text-primary' },
-    { label: 'Valor total', value: ocultar(`R$ ${stats.valorTotal.toFixed(2)}`), sub: ocultar(`${stats.totalHoras.toFixed(1)}h`), icon: DollarSign, color: 'text-primary' },
-    { label: 'Pendentes', value: String(stats.pendentes), sub: 'sem apontamento', icon: Timer, color: 'text-muted-foreground' },
-    { label: 'Atrasados', value: String(stats.atrasados), sub: '5+ dias', icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Não computados', value: String(stats.naoComputados), sub: 'férias/feriados', icon: Plane, color: 'text-cyan-400' },
-  ];
+  const ocultar = (valor: string) => !ocultarValores ? valor : '••••••';
 
   return (
     <div className="space-y-2">
@@ -61,17 +82,52 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar }
         </Button>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {cards.map(card => (
-          <div key={card.label} className="glass-card p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <card.icon className={`w-4 h-4 ${card.color}`} />
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{card.label}</span>
-            </div>
-            <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
-            <p className="text-xs text-muted-foreground">{card.sub}</p>
+        <Card icon={FileText} label="Atendimentos" value={String(stats.total)} sub="no período filtrado" />
+
+        {/* Card mesclado: Horas + Valor */}
+        <div className="glass-card p-4 space-y-1">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Horas / Valor</span>
           </div>
-        ))}
+          <p className="text-2xl font-bold text-primary">{stats.totalHoras.toFixed(1)}<span className="text-sm text-muted-foreground ml-1">h</span></p>
+          <p className="text-base font-semibold text-primary/80">{ocultar(`R$ ${stats.valorTotal.toFixed(2)}`)}</p>
+        </div>
+
+        <Card icon={Timer} label="Pendentes" value={String(stats.pendentes)} sub="sem apontamento" color="text-muted-foreground" />
+        <Card icon={AlertTriangle} label="Atrasados" value={String(stats.atrasados)} sub="5+ dias" color="text-destructive" />
+        <Card icon={Plane} label="Férias/Feriados/Folga" value={String(stats.naoComputados)} sub="não computados" color="text-cyan-400" />
+
+        {/* Previsão */}
+        <div className="glass-card p-4 space-y-1">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Previsão</span>
+          </div>
+          {previsao ? (
+            <>
+              <p className="text-2xl font-bold text-emerald-400">{previsao.horas}<span className="text-sm text-muted-foreground ml-1">h</span></p>
+              <p className="text-base font-semibold text-emerald-400/80">{ocultar(`R$ ${previsao.valor.toFixed(2)}`)}</p>
+              <p className="text-[10px] text-muted-foreground">{previsao.dias} dias úteis × {HORAS_DIA_UTIL}h</p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground pt-2">Defina um período para ver a previsão</p>
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function Card({ icon: Icon, label, value, sub, color = 'text-foreground' }: { icon: any; label: string; value: string; sub: string; color?: string }) {
+  return (
+    <div className="glass-card p-4 space-y-2">
+      <div className="flex items-center gap-2">
+        <Icon className={`w-4 h-4 ${color}`} />
+        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
+      </div>
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className="text-xs text-muted-foreground">{sub}</p>
     </div>
   );
 }

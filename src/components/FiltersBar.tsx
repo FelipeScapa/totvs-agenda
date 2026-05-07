@@ -38,6 +38,21 @@ export function periodoFechamento(ref: Date): { inicio: string; fim: string; lab
   };
 }
 
+export function periodoFiltro(f: FiltersState): { inicio?: string; fim?: string } {
+  const modo = f.modo ?? 'data';
+  if (modo === 'data') {
+    return {
+      inicio: f.dataInicio ? format(f.dataInicio, 'yyyy-MM-dd') : undefined,
+      fim: f.dataFim ? format(f.dataFim, 'yyyy-MM-dd') : undefined,
+    };
+  }
+  if (f.fechamentoRef) {
+    const p = periodoFechamento(f.fechamentoRef);
+    return { inicio: p.inicio, fim: p.fim };
+  }
+  return {};
+}
+
 interface Props {
   filters: FiltersState;
   setFilters: (f: FiltersState) => void;

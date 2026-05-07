@@ -3,14 +3,14 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff, Plane } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff, Plane, TrendingUp, PartyPopper, AlertTriangle, Timer } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useServicos } from '@/hooks/use-servicos';
 import { useFeriados } from '@/hooks/use-feriados';
 import { calcularValor, calcularStatusPrazo } from '@/lib/atendimento-utils';
-import { FiltersBar, FiltersState, aplicarFiltros } from '@/components/FiltersBar';
+import { FiltersBar, FiltersState, aplicarFiltros, periodoFiltro } from '@/components/FiltersBar';
 import { STATUS_FLOW, STATUS_LABELS } from '@/types/atendimento';
 
 interface CalendarViewProps {
@@ -44,7 +44,7 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
   const [view, setView] = useState<ViewMode>('mes');
   const [cursor, setCursor] = useState<Date>(new Date());
   const { servicos } = useServicos();
-  const { isDiaNaoComputado } = useFeriados();
+  const { isDiaNaoComputado, getFeriado, isDiaForaPrevisao } = useFeriados();
 
   const filtrados = useMemo(() => aplicarFiltros(atendimentos, filters), [atendimentos, filters]);
 
@@ -70,6 +70,22 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
 
     return { total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados, naoComputados, counts };
   }, [filtrados, servicos, isDiaNaoComputado]);
+
+  const previsao = useMemo(() => {
+    const p = periodoFiltro(filters);
+    if (!p.inicio || !p.fim) return null;
+    const start = new Date(p.inicio + 'T00:00:00');
+    const end = new Date(p.fim + 'T00:00:00');
+    let dias = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+      const dow = cur.getDay();
+      const iso = cur.toISOString().slice(0, 10);
+      if (dow >= 1 && dow <= 5 && !isDiaForaPrevisao(iso)) dias++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return { dias, horas: dias * 8, valor: dias * 8 * 26 };
+  }, [filters, isDiaForaPrevisao]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, Atendimento[]>();
@@ -111,11 +127,34 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
       {/* Dashboard cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
-        <StatCard icon={Clock} label="Horas" value={stats.totalHoras.toFixed(1)} color="text-primary" />
-        <StatCard icon={DollarSign} label="Valor" value={ocultarValores ? '••••••' : `R$ ${stats.valorTotal.toFixed(2)}`} color="text-primary" />
-        <StatCard icon={Clock} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
-        <StatCard icon={Clock} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
-        <StatCard icon={Plane} label="Não computados" value={String(stats.naoComputados)} color="text-cyan-400" />
+        {/* Mesclado: Horas + Valor */}
+        <div className="glass-card p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Horas / Valor</span>
+          </div>
+          <p className="text-xl font-bold text-primary">{stats.totalHoras.toFixed(1)}<span className="text-xs text-muted-foreground ml-1">h</span></p>
+          <p className="text-sm font-semibold text-primary/80">{ocultarValores ? '••••••' : `R$ ${stats.valorTotal.toFixed(2)}`}</p>
+        </div>
+        <StatCard icon={Timer} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
+        <StatCard icon={AlertTriangle} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
+        <StatCard icon={Plane} label="Férias/Feriados/Folga" value={String(stats.naoComputados)} color="text-cyan-400" />
+        {/* Previsão */}
+        <div className="glass-card p-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">Previsão</span>
+          </div>
+          {previsao ? (
+            <>
+              <p className="text-xl font-bold text-emerald-400">{previsao.horas}<span className="text-xs text-muted-foreground ml-1">h</span></p>
+              <p className="text-sm font-semibold text-emerald-400/80">{ocultarValores ? '••••••' : `R$ ${previsao.valor.toFixed(2)}`}</p>
+              <p className="text-[10px] text-muted-foreground">{previsao.dias}d × 8h</p>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground pt-2">Defina um período</p>
+          )}
+        </div>
       </div>
 
       {/* Status totalizer */}
@@ -154,9 +193,9 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
         </Tabs>
       </div>
 
-      {view === 'mes' && <MesView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
-      {view === 'semana' && <SemanaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
-      {view === 'dia' && <DiaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} />}
+      {view === 'mes' && <MesView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} getFeriado={getFeriado} />}
+      {view === 'semana' && <SemanaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} getFeriado={getFeriado} />}
+      {view === 'dia' && <DiaView cursor={cursor} byDate={byDate} onClick={onAtendimentoClick} getFeriado={getFeriado} />}
     </div>
   );
 }
@@ -194,7 +233,15 @@ function RankingCard({ title, rows }: { title: string; rows: [string, { horas: n
   );
 }
 
-function MesView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
+type GetFeriado = (data: string) => { tipo: 'FERIAS' | 'FERIADO' | 'FOLGA'; descricao: string } | null;
+
+function feriadoStyles(tipo: 'FERIAS' | 'FERIADO' | 'FOLGA') {
+  if (tipo === 'FERIAS') return { bg: 'bg-cyan-500/10 ring-cyan-500/40', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', icon: Plane, label: 'Férias' };
+  if (tipo === 'FOLGA') return { bg: 'bg-amber-500/10 ring-amber-500/40', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: Coffee, label: 'Folga' };
+  return { bg: 'bg-purple-500/10 ring-purple-500/40', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: PartyPopper, label: 'Feriado' };
+}
+
+function MesView({ cursor, byDate, onClick, getFeriado }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; getFeriado: GetFeriado }) {
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
   const start = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -218,13 +265,24 @@ function MesView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string
           const items = byDate.get(key) ?? [];
           const inMonth = isSameMonth(day, cursor);
           const isToday = isSameDay(day, new Date());
+          const feriado = getFeriado(key);
+          const fs = feriado ? feriadoStyles(feriado.tipo) : null;
           return (
             <div key={key} className={cn(
               "min-h-[90px] rounded p-1.5 border border-border/30 flex flex-col gap-0.5",
               inMonth ? "bg-secondary/20" : "bg-secondary/5 opacity-50",
-              isToday && "ring-1 ring-primary"
+              fs && `${fs.bg} ring-1`,
+              isToday && "ring-2 ring-primary"
             )}>
-              <div className={cn("text-xs font-medium", isToday && "text-primary font-bold")}>{format(day, 'd')}</div>
+              <div className="flex items-center justify-between gap-1">
+                <span className={cn("text-xs font-medium", isToday && "text-primary font-bold")}>{format(day, 'd')}</span>
+                {fs && <fs.icon className="w-3 h-3 opacity-70" />}
+              </div>
+              {fs && (
+                <span className={cn("text-[9px] px-1 rounded border truncate", fs.badge)} title={feriado!.descricao}>
+                  {fs.label}
+                </span>
+              )}
               {items.slice(0, 3).map(a => (
                 <button
                   key={a.id}
@@ -246,7 +304,7 @@ function MesView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string
   );
 }
 
-function SemanaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
+function SemanaView({ cursor, byDate, onClick, getFeriado }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; getFeriado: GetFeriado }) {
   const start = startOfWeek(cursor, { weekStartsOn: 0 });
   const days: Date[] = [];
   for (let i = 0; i < 7; i++) days.push(addDays(start, i));
@@ -257,12 +315,19 @@ function SemanaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<str
         const key = format(day, 'yyyy-MM-dd');
         const items = byDate.get(key) ?? [];
         const isToday = isSameDay(day, new Date());
+        const feriado = getFeriado(key);
+        const fs = feriado ? feriadoStyles(feriado.tipo) : null;
         return (
-          <div key={key} className={cn("glass-card p-2 min-h-[200px] flex flex-col gap-1", isToday && "ring-1 ring-primary")}>
+          <div key={key} className={cn("glass-card p-2 min-h-[200px] flex flex-col gap-1", fs && `${fs.bg} ring-1`, isToday && "ring-2 ring-primary")}>
             <div className="text-center mb-1">
               <div className="text-xs text-muted-foreground uppercase">{format(day, 'EEE', { locale: ptBR })}</div>
               <div className={cn("text-lg font-bold", isToday && "text-primary")}>{format(day, 'd')}</div>
             </div>
+            {fs && (
+              <div className={cn("flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border justify-center", fs.badge)} title={feriado!.descricao}>
+                <fs.icon className="w-3 h-3" /> {fs.label}
+              </div>
+            )}
             {items.map(a => (
               <button
                 key={a.id}
@@ -274,7 +339,7 @@ function SemanaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<str
                 {a.descricao && <div className="opacity-80 truncate">{a.descricao}</div>}
               </button>
             ))}
-            {items.length === 0 && <div className="text-xs text-muted-foreground text-center mt-4">—</div>}
+            {items.length === 0 && !fs && <div className="text-xs text-muted-foreground text-center mt-4">—</div>}
           </div>
         );
       })}
@@ -286,9 +351,11 @@ const HOUR_PX = 40; // 24h * 40 = 960px
 
 function toMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 
-function DiaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
+function DiaView({ cursor, byDate, onClick, getFeriado }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; getFeriado: GetFeriado }) {
   const key = format(cursor, 'yyyy-MM-dd');
   const items = byDate.get(key) ?? [];
+  const feriado = getFeriado(key);
+  const fs = feriado ? feriadoStyles(feriado.tipo) : null;
   const hours = Array.from({ length: 24 }, (_, i) => i); // 0–23
 
   // Build segments: for each atendimento, split at intervalo (if any) into one or two segments + a 'pausa' segment
@@ -313,7 +380,14 @@ function DiaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string
   const px = (min: number) => (min / 60) * HOUR_PX;
 
   return (
-    <div className="glass-card p-3">
+    <div className={cn("glass-card p-3", fs && `${fs.bg} ring-1`)}>
+      {fs && (
+        <div className={cn("flex items-center gap-2 px-3 py-2 mb-2 rounded border", fs.badge)}>
+          <fs.icon className="w-4 h-4" />
+          <span className="font-semibold">{fs.label}</span>
+          <span className="text-xs opacity-80">· {feriado!.descricao}</span>
+        </div>
+      )}
       <div className="relative" style={{ height: `${24 * HOUR_PX}px` }}>
         {hours.map(h => (
           <div key={h} className="absolute left-0 right-0 border-t border-border/30 flex" style={{ top: `${h * HOUR_PX}px` }}>
