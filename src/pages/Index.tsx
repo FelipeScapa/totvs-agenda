@@ -110,17 +110,10 @@ const Index = () => {
         .forEach(a => {
           partes.push(`${formatarData(a.data)} - ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)`);
         });
-      partes.push('teste');
+      partes.push('');
     });
     
-    const texto = partes.join('\n').trimEnd();
-    
-    console.log(texto);
-    
-    alert(texto);
-    
-    navigator.clipboard.writeText(texto);
-    navigator.clipboard.writeText(partes.join('\n').trimEnd());
+    navigator.clipboard.writeText('teste');
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por cliente.` });
   };
 
