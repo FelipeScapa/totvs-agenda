@@ -90,7 +90,7 @@ const Index = () => {
     setFilters({ ...filters, status: filters.status.includes(s) ? filters.status.filter(x => x !== s) : [...filters.status, s] });
   };
 
-  const copiarTudoAgenda = () => {
+  const copiarTudoAgenda = async () => {
     if (atendimentosFiltrados.length === 0) {
       toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
       return;
@@ -116,7 +116,21 @@ const Index = () => {
     
     alert(texto);
     alert('texto deu certo agr arrumar copiar');
-    navigator.clipboard.writeText(texto);
+    await navigator.clipboard.writeText(partes.join('\n').trimEnd());
+    try {
+  await navigator.clipboard.writeText(partes.join('\n').trimEnd());
+
+  toast({
+    title: 'Copiado!',
+    description: `${atendimentosFiltrados.length} agendas agrupadas por cliente.`,
+  });
+} catch (err) {
+  toast({
+    title: 'Erro',
+    description: 'Não foi possível copiar.',
+    variant: 'destructive',
+  });
+}
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
   };
 
