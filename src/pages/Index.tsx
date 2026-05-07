@@ -110,7 +110,7 @@ const Index = () => {
         .forEach(a => {
           partes.push(`${formatarData(a.data)} - ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)`);
         });
-      partes.push('');
+      partes.push('teste');
     });
     
     const texto = partes.join('\n').trimEnd();
