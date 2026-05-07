@@ -114,7 +114,7 @@ const Index = () => {
     });
     
     navigator.clipboard.writeText('teste');
-    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por cliente.` });
+    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
   };
 
   return (
