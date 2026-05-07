@@ -121,7 +121,7 @@ const Index = () => {
     alert('final');
     
     await navigator.clipboard.writeText(texto);
-  };/
+  };
 
   return (
     <div className="min-h-screen bg-background">
