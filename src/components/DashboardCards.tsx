@@ -53,8 +53,8 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, 
     const pendentes = atendimentos.filter(a => a.status !== 'APONTADO');
     const atrasados = pendentes.filter(a => calcularStatusPrazo(a.data) === 'ATRASADO');
     const computaveis = atendimentos.filter(a => !isDiaNaoComputado(a.data));
-    const totalHoras = computaveis.reduce((s, a) => s + a.duracao_horas, 0);
-    const valorTotal = computaveis.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
+    const totalHoras = a.duracao_horas;
+    const valorTotal = calcularValor(a.duracao_horas, getValorHora(a));
     const naoComputados = 0//atendimentos.length - computaveis.length;
 
     return {
@@ -96,7 +96,6 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, 
 
         <Card icon={Timer} label="Pendentes" value={String(stats.pendentes)} sub="sem apontamento" color="text-muted-foreground" />
         <Card icon={AlertTriangle} label="Atrasados" value={String(stats.atrasados)} sub="5+ dias" color="text-destructive" />
-        //<Card icon={Plane} label="Férias/Feriados/Folga" value={String(stats.naoComputados)} sub="não computados" color="text-cyan-400" />
 
         {/* Previsão */}
         <div className="glass-card p-4 space-y-1">
