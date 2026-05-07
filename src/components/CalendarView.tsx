@@ -233,7 +233,15 @@ function RankingCard({ title, rows }: { title: string; rows: [string, { horas: n
   );
 }
 
-function MesView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
+type GetFeriado = (data: string) => { tipo: 'FERIAS' | 'FERIADO' | 'FOLGA'; descricao: string } | null;
+
+function feriadoStyles(tipo: 'FERIAS' | 'FERIADO' | 'FOLGA') {
+  if (tipo === 'FERIAS') return { bg: 'bg-cyan-500/10 ring-cyan-500/40', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', icon: Plane, label: 'Férias' };
+  if (tipo === 'FOLGA') return { bg: 'bg-amber-500/10 ring-amber-500/40', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: Coffee, label: 'Folga' };
+  return { bg: 'bg-purple-500/10 ring-purple-500/40', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: PartyPopper, label: 'Feriado' };
+}
+
+function MesView({ cursor, byDate, onClick, getFeriado }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; getFeriado: GetFeriado }) {
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
   const start = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -257,13 +265,24 @@ function MesView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string
           const items = byDate.get(key) ?? [];
           const inMonth = isSameMonth(day, cursor);
           const isToday = isSameDay(day, new Date());
+          const feriado = getFeriado(key);
+          const fs = feriado ? feriadoStyles(feriado.tipo) : null;
           return (
             <div key={key} className={cn(
               "min-h-[90px] rounded p-1.5 border border-border/30 flex flex-col gap-0.5",
               inMonth ? "bg-secondary/20" : "bg-secondary/5 opacity-50",
-              isToday && "ring-1 ring-primary"
+              fs && `${fs.bg} ring-1`,
+              isToday && "ring-2 ring-primary"
             )}>
-              <div className={cn("text-xs font-medium", isToday && "text-primary font-bold")}>{format(day, 'd')}</div>
+              <div className="flex items-center justify-between gap-1">
+                <span className={cn("text-xs font-medium", isToday && "text-primary font-bold")}>{format(day, 'd')}</span>
+                {fs && <fs.icon className="w-3 h-3 opacity-70" />}
+              </div>
+              {fs && (
+                <span className={cn("text-[9px] px-1 rounded border truncate", fs.badge)} title={feriado!.descricao}>
+                  {fs.label}
+                </span>
+              )}
               {items.slice(0, 3).map(a => (
                 <button
                   key={a.id}
@@ -285,7 +304,7 @@ function MesView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string
   );
 }
 
-function SemanaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
+function SemanaView({ cursor, byDate, onClick, getFeriado }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; getFeriado: GetFeriado }) {
   const start = startOfWeek(cursor, { weekStartsOn: 0 });
   const days: Date[] = [];
   for (let i = 0; i < 7; i++) days.push(addDays(start, i));
@@ -296,12 +315,19 @@ function SemanaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<str
         const key = format(day, 'yyyy-MM-dd');
         const items = byDate.get(key) ?? [];
         const isToday = isSameDay(day, new Date());
+        const feriado = getFeriado(key);
+        const fs = feriado ? feriadoStyles(feriado.tipo) : null;
         return (
-          <div key={key} className={cn("glass-card p-2 min-h-[200px] flex flex-col gap-1", isToday && "ring-1 ring-primary")}>
+          <div key={key} className={cn("glass-card p-2 min-h-[200px] flex flex-col gap-1", fs && `${fs.bg} ring-1`, isToday && "ring-2 ring-primary")}>
             <div className="text-center mb-1">
               <div className="text-xs text-muted-foreground uppercase">{format(day, 'EEE', { locale: ptBR })}</div>
               <div className={cn("text-lg font-bold", isToday && "text-primary")}>{format(day, 'd')}</div>
             </div>
+            {fs && (
+              <div className={cn("flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border justify-center", fs.badge)} title={feriado!.descricao}>
+                <fs.icon className="w-3 h-3" /> {fs.label}
+              </div>
+            )}
             {items.map(a => (
               <button
                 key={a.id}
@@ -313,7 +339,7 @@ function SemanaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<str
                 {a.descricao && <div className="opacity-80 truncate">{a.descricao}</div>}
               </button>
             ))}
-            {items.length === 0 && <div className="text-xs text-muted-foreground text-center mt-4">—</div>}
+            {items.length === 0 && !fs && <div className="text-xs text-muted-foreground text-center mt-4">—</div>}
           </div>
         );
       })}
@@ -325,9 +351,11 @@ const HOUR_PX = 40; // 24h * 40 = 960px
 
 function toMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 
-function DiaView({ cursor, byDate, onClick }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void }) {
+function DiaView({ cursor, byDate, onClick, getFeriado }: { cursor: Date; byDate: Map<string, Atendimento[]>; onClick?: (a: Atendimento) => void; getFeriado: GetFeriado }) {
   const key = format(cursor, 'yyyy-MM-dd');
   const items = byDate.get(key) ?? [];
+  const feriado = getFeriado(key);
+  const fs = feriado ? feriadoStyles(feriado.tipo) : null;
   const hours = Array.from({ length: 24 }, (_, i) => i); // 0–23
 
   // Build segments: for each atendimento, split at intervalo (if any) into one or two segments + a 'pausa' segment
