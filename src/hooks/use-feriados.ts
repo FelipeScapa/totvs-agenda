@@ -48,9 +48,20 @@ export function useFeriados() {
     save(load().filter(x => x.id !== id));
   }, []);
 
-  const isDiaNaoComputado = useCallback((data: string): Feriado | null => {
+  const getFeriado = useCallback((data: string): Feriado | null => {
     return feriados.find(f => data >= f.data_inicio && data <= f.data_fim) ?? null;
   }, [feriados]);
 
-  return { feriados, adicionar, atualizar, remover, isDiaNaoComputado };
+  // Não computa horas/valor: apenas FERIAS e FERIADO. FOLGA continua contabilizando se houver agenda.
+  const isDiaNaoComputado = useCallback((data: string): Feriado | null => {
+    const f = getFeriado(data);
+    return f && f.tipo !== 'FOLGA' ? f : null;
+  }, [getFeriado]);
+
+  // Para previsão de horas úteis: qualquer um dos 3 tipos remove o dia da previsão
+  const isDiaForaPrevisao = useCallback((data: string): boolean => {
+    return getFeriado(data) !== null;
+  }, [getFeriado]);
+
+  return { feriados, adicionar, atualizar, remover, isDiaNaoComputado, getFeriado, isDiaForaPrevisao };
 }
