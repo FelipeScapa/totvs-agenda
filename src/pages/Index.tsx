@@ -117,8 +117,6 @@ const Index = () => {
     alert(texto);
     alert('texto deu certo agr arrumar copiar');
     
-    await navigator.clipboard.writeText(partes.join('\n').trimEnd());
-    
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
     alert('final');
     
