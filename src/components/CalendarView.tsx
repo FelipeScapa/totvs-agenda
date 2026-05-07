@@ -44,7 +44,7 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
   const [view, setView] = useState<ViewMode>('mes');
   const [cursor, setCursor] = useState<Date>(new Date());
   const { servicos } = useServicos();
-  const { isDiaNaoComputado } = useFeriados();
+  const { isDiaNaoComputado, getFeriado, isDiaForaPrevisao } = useFeriados();
 
   const filtrados = useMemo(() => aplicarFiltros(atendimentos, filters), [atendimentos, filters]);
 
