@@ -112,15 +112,24 @@ const Index = () => {
         });
       partes.push('');
     });
-    const texto = partes.join('\n').trimEnd();
-    
-    alert(texto);
-    alert('texto deu certo agr arrumar copiar');
     
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
     alert('final');
     
-    await navigator.clipboard.writeText(texto);
+    const texto = partes.join('\n').trimEnd();
+    alert(texto);
+
+    const textarea = document.createElement('textarea');
+    
+    textarea.value = texto;
+    
+    document.body.appendChild(textarea);
+    
+    textarea.select();
+    
+    document.execCommand('copy');
+    
+    document.body.removeChild(textarea);
   };
 
   return (
