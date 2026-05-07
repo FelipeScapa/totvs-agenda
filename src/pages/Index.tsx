@@ -112,6 +112,14 @@ const Index = () => {
         });
       partes.push('');
     });
+    
+    const texto = partes.join('\n').trimEnd();
+    
+    console.log(texto);
+    
+    alert(texto);
+    
+    navigator.clipboard.writeText(texto);
     navigator.clipboard.writeText(partes.join('\n').trimEnd());
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por cliente.` });
   };
