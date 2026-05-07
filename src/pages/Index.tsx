@@ -118,21 +118,23 @@ const Index = () => {
     alert('texto deu certo agr arrumar copiar');
     await navigator.clipboard.writeText(partes.join('\n').trimEnd());
     try {
-  await navigator.clipboard.writeText(partes.join('\n').trimEnd());
-
-  toast({
-    title: 'Copiado!',
-    description: `${atendimentosFiltrados.length} agendas agrupadas por cliente.`,
-  });
-} catch (err) {
-  toast({
-    title: 'Erro',
-    description: 'Não foi possível copiar.',
-    variant: 'destructive',
-  });
-}
+      await navigator.clipboard.writeText(partes.join('\n').trimEnd());
+    
+      toast({
+        title: 'Copiado!',
+        description: `${atendimentosFiltrados.length} agendas agrupadas por cliente.`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível copiar.',
+        variant: 'destructive',
+      });
+    }
     toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
-  };
+    alert('final');
+    await navigator.clipboard.writeText(texto);
+  };/
 
   return (
     <div className="min-h-screen bg-background">
