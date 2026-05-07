@@ -71,9 +71,13 @@ export function FeriadosManager({ open, onOpenChange }: Props) {
           {ordenados.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum período cadastrado.</p>}
           {ordenados.map(f => (
             <div key={f.id} className="glass-card p-2 flex items-center gap-3">
-              <Badge variant="outline" className={f.tipo === 'FERIAS' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' : 'bg-purple-500/20 text-purple-400 border-purple-500/30'}>
-                {f.tipo === 'FERIAS' ? <Plane className="w-3 h-3 mr-1" /> : <PartyPopper className="w-3 h-3 mr-1" />}
-                {f.tipo === 'FERIAS' ? 'Férias' : 'Feriado'}
+              <Badge variant="outline" className={
+                f.tipo === 'FERIAS' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+                : f.tipo === 'FOLGA' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                : 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+              }>
+                {f.tipo === 'FERIAS' ? <Plane className="w-3 h-3 mr-1" /> : f.tipo === 'FOLGA' ? <Coffee className="w-3 h-3 mr-1" /> : <PartyPopper className="w-3 h-3 mr-1" />}
+                {f.tipo === 'FERIAS' ? 'Férias' : f.tipo === 'FOLGA' ? 'Folga' : 'Feriado'}
               </Badge>
               <span className="font-medium text-sm flex-1 truncate">{f.descricao}</span>
               <span className="text-xs text-muted-foreground">
