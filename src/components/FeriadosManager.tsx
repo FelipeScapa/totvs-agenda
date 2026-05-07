@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Plane, PartyPopper } from 'lucide-react';
+import { Trash2, Plus, Plane, PartyPopper, Coffee } from 'lucide-react';
 import { formatarData } from '@/lib/atendimento-utils';
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void; }
