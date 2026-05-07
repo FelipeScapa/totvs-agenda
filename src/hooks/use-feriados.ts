@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
-export type TipoFeriado = 'FERIAS' | 'FERIADO';
+export type TipoFeriado = 'FERIAS' | 'FERIADO' | 'FOLGA';
 
 export interface Feriado {
   id: string;
