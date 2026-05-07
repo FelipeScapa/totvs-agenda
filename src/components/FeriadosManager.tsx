@@ -38,7 +38,7 @@ export function FeriadosManager({ open, onOpenChange }: Props) {
           <DialogTitle>Férias e Feriados</DialogTitle>
         </DialogHeader>
         <p className="text-xs text-muted-foreground -mt-2">
-          Atendimentos em datas marcadas não somam horas nem valor nos totalizadores.
+          <strong>Férias/Feriado:</strong> não somam horas nem valor. <strong>Folga:</strong> apenas sinaliza no calendário e remove da previsão de horas — agendas ainda computam normalmente.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
           <div>
@@ -48,6 +48,7 @@ export function FeriadosManager({ open, onOpenChange }: Props) {
               <SelectContent>
                 <SelectItem value="FERIADO">Feriado</SelectItem>
                 <SelectItem value="FERIAS">Férias</SelectItem>
+                <SelectItem value="FOLGA">Folga</SelectItem>
               </SelectContent>
             </Select>
           </div>
