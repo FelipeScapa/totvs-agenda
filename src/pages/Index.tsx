@@ -113,11 +113,7 @@ const Index = () => {
       partes.push('');
     });
     
-    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
-    alert('final');
-    
     const texto = partes.join('\n').trimEnd();
-    alert(texto);
 
     const textarea = document.createElement('textarea');
     
@@ -130,6 +126,9 @@ const Index = () => {
     document.execCommand('copy');
     
     document.body.removeChild(textarea);
+    
+    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} agendas agrupadas por clientes.` });
+    
   };
 
   return (
