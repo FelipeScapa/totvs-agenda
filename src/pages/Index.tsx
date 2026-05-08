@@ -46,9 +46,16 @@ const Index = () => {
   const [appTab, setAppTab] = useState<'agenda' | 'financeiro'>('agenda');
 
   const atendimentosFiltrados = useMemo(() => {
-    return aplicarFiltros(atendimentos, filters)
-      .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
-  }, [atendimentos, filters]);
+    let lista = aplicarFiltros(atendimentos, filters);
+    if (apenasAtrasados) {
+      lista = lista.filter(a => a.status !== 'APONTADO' && (() => {
+        const hoje = new Date(); hoje.setHours(0,0,0,0);
+        const d = new Date(a.data + 'T00:00:00');
+        return (hoje.getTime() - d.getTime()) / 86400000 >= 5;
+      })());
+    }
+    return lista.sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
+  }, [atendimentos, filters, apenasAtrasados]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
