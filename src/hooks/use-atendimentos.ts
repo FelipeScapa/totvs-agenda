@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Atendimento } from '@/types/atendimento';
 
 const STORAGE_KEY = 'agenda-log-atendimentos';
@@ -18,9 +18,14 @@ function saveAtendimentos(atendimentos: Atendimento[]) {
 
 export function useAtendimentos() {
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>(loadAtendimentos);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
-    saveAtendimentos(atendimentos);
+    if (loadedRef.current) {
+      saveAtendimentos(atendimentos);
+    } else {
+      loadedRef.current = true;
+    }
   }, [atendimentos]);
 
   const adicionar = useCallback((atendimento: Atendimento) => {

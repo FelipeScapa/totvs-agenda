@@ -3,7 +3,7 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, DollarSign, FileText, Coffee, Eye, EyeOff, Plane, TrendingUp, PartyPopper, AlertTriangle, Timer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, FileText, Coffee, Eye, EyeOff, Plane, TrendingUp, PartyPopper, AlertTriangle, Timer } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -44,7 +44,7 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
   const [view, setView] = useState<ViewMode>('mes');
   const [cursor, setCursor] = useState<Date>(new Date());
   const { servicos } = useServicos();
-  const { isDiaNaoComputado, getFeriado, isDiaForaPrevisao } = useFeriados();
+  const { getFeriado, isDiaForaPrevisao } = useFeriados();
 
   const filtrados = useMemo(() => aplicarFiltros(atendimentos, filters), [atendimentos, filters]);
 
@@ -57,19 +57,17 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
   };
 
   const stats = useMemo(() => {
-    const computaveis = filtrados.filter(a => !isDiaNaoComputado(a.data));
-    const totalHoras = computaveis.reduce((s, a) => s + a.duracao_horas, 0);
-    const valorTotal = computaveis.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
+    const totalHoras = filtrados.reduce((s, a) => s + a.duracao_horas, 0);
+    const valorTotal = filtrados.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
     const counts: Record<string, number> = {};
     STATUS_FLOW.forEach(s => counts[s] = 0);
     filtrados.forEach(a => { counts[a.status] = (counts[a.status] ?? 0) + 1; });
 
     const pendentes = filtrados.filter(a => a.status !== 'APONTADO').length;
     const atrasados = filtrados.filter(a => a.status !== 'APONTADO' && calcularStatusPrazo(a.data) === 'ATRASADO').length;
-    const naoComputados = filtrados.length - computaveis.length;
 
-    return { total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados, naoComputados, counts };
-  }, [filtrados, servicos, isDiaNaoComputado]);
+    return { total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados, counts };
+  }, [filtrados, servicos]);
 
   const previsao = useMemo(() => {
     const p = periodoFiltro(filters);
@@ -125,7 +123,7 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
       </div>
 
       {/* Dashboard cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
         {/* Mesclado: Horas + Valor */}
         <div className="glass-card p-3 space-y-1">
@@ -138,7 +136,6 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
         </div>
         <StatCard icon={Timer} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
         <StatCard icon={AlertTriangle} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
-        <StatCard icon={Plane} label="Férias/Feriados/Folga" value={String(stats.naoComputados)} color="text-cyan-400" />
         {/* Previsão */}
         <div className="glass-card p-3 space-y-1">
           <div className="flex items-center gap-2">
