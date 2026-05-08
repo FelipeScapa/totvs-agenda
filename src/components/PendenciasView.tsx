@@ -185,7 +185,7 @@ function PendenciaForm({
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [prioridade, setPrioridade] = useState<'BAIXA' | 'MEDIA' | 'ALTA'>('MEDIA');
-  const [status, setStatus] = useState<'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA'>('ABERTA');
+  const [status, setStatus] = useState<'ABERTA' | 'EM_ANDAMENTO' | 'VALIDACAO' | 'CONCLUIDA'>('ABERTA');
   const [prazo, setPrazo] = useState<Date | undefined>();
 
   useEffect(() => {
