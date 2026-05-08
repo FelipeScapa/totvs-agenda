@@ -136,7 +136,6 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
         </div>
         <StatCard icon={Timer} label="Pendentes" value={String(stats.pendentes)} color="text-muted-foreground" />
         <StatCard icon={AlertTriangle} label="Atrasados" value={String(stats.atrasados)} color="text-destructive" />
-        <StatCard icon={Plane} label="Férias/Feriados/Folga" value={String(stats.naoComputados)} color="text-cyan-400" />
         {/* Previsão */}
         <div className="glass-card p-3 space-y-1">
           <div className="flex items-center gap-2">
