@@ -123,7 +123,7 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
       </div>
 
       {/* Dashboard cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard icon={FileText} label="Atendimentos" value={String(stats.total)} />
         {/* Mesclado: Horas + Valor */}
         <div className="glass-card p-3 space-y-1">
