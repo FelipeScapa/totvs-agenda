@@ -17,7 +17,10 @@ function getStore<T>(key: string, initial: T): Store<T> {
     try {
       const raw = localStorage.getItem(key);
       if (raw) cached = JSON.parse(raw);
-    } catch {}
+    } catch (e) {
+      console.warn(`[storage-store] Falha ao parsear localStorage key "${key}":`, e);
+      cached = initial;
+    }
     s = { key, cache: cached, listeners: new Set() };
     stores.set(key, s);
   }
