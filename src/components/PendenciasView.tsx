@@ -262,6 +262,7 @@ function PendenciaForm({
                 <SelectContent>
                   <SelectItem value="ABERTA">Aberta</SelectItem>
                   <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+                  <SelectItem value="VALIDACAO">Em validação</SelectItem>
                   <SelectItem value="CONCLUIDA">Concluída</SelectItem>
                 </SelectContent>
               </Select>
