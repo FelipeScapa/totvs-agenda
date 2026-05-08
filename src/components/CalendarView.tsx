@@ -57,19 +57,17 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
   };
 
   const stats = useMemo(() => {
-    const computaveis = filtrados.filter(a => !isDiaNaoComputado(a.data));
-    const totalHoras = computaveis.reduce((s, a) => s + a.duracao_horas, 0);
-    const valorTotal = computaveis.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
+    const totalHoras = filtrados.reduce((s, a) => s + a.duracao_horas, 0);
+    const valorTotal = filtrados.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
     const counts: Record<string, number> = {};
     STATUS_FLOW.forEach(s => counts[s] = 0);
     filtrados.forEach(a => { counts[a.status] = (counts[a.status] ?? 0) + 1; });
 
     const pendentes = filtrados.filter(a => a.status !== 'APONTADO').length;
     const atrasados = filtrados.filter(a => a.status !== 'APONTADO' && calcularStatusPrazo(a.data) === 'ATRASADO').length;
-    const naoComputados = filtrados.length - computaveis.length;
 
-    return { total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados, naoComputados, counts };
-  }, [filtrados, servicos, isDiaNaoComputado]);
+    return { total: filtrados.length, totalHoras, valorTotal, pendentes, atrasados, counts };
+  }, [filtrados, servicos]);
 
   const previsao = useMemo(() => {
     const p = periodoFiltro(filters);
