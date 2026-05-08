@@ -188,7 +188,7 @@ const Index = () => {
 
           <TabsContent value="atendimentos" className="space-y-6">
             <QuickMode onSave={adicionar} />
-            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} periodo={periodoFiltro(filters)} />
+            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} periodo={periodoFiltro(filters)} onClickAtrasados={() => setApenasAtrasados(v => !v)} atrasadosAtivo={apenasAtrasados} />
 
             {/* Totalizador de status (clicável - multi) */}
             <div className="flex flex-wrap gap-2">
