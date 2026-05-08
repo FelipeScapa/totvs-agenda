@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
-export type PendenciaStatus = 'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA';
+export type PendenciaStatus = 'ABERTA' | 'EM_ANDAMENTO' | 'VALIDACAO' | 'CONCLUIDA';
 
 export interface Pendencia {
   id: string;
