@@ -38,8 +38,9 @@ const Index = () => {
   const [clienteOpen, setClienteOpen] = useState(false);
   const [tipoOpen, setTipoOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
-  const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
+  const [filters, setFilters] = useState<FiltersState>({ modo: 'fechamento', fechamentoRef: new Date(), status: [], clientes: [], servicos: [] });
   const [ocultarValores, setOcultarValores] = useState(false);
+  const [apenasAtrasados, setApenasAtrasados] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [feriadosOpen, setFeriadosOpen] = useState(false);
   const [appTab, setAppTab] = useState<'agenda' | 'financeiro'>('agenda');
