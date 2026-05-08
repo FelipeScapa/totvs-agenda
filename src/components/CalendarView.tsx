@@ -3,7 +3,7 @@ import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Clock, FileText, Eye, EyeOff, Plane, TrendingUp, PartyPopper, AlertTriangle, Timer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, FileText, Coffee, Eye, EyeOff, Plane, TrendingUp, PartyPopper, AlertTriangle, Timer } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
