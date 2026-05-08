@@ -3,14 +3,17 @@ import { Atendimento } from '@/types/atendimento';
 import { calcularValor, calcularStatusPrazo } from '@/lib/atendimento-utils';
 import { useServicos } from '@/hooks/use-servicos';
 import { useFeriados } from '@/hooks/use-feriados';
-import { Clock, DollarSign, AlertTriangle, FileText, Timer, Eye, EyeOff, Plane, TrendingUp } from 'lucide-react';
+import { Clock, AlertTriangle, FileText, Timer, Eye, EyeOff, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface DashboardCardsProps {
   atendimentos: Atendimento[];
   ocultarValores: boolean;
   onToggleOcultar: () => void;
   periodo?: { inicio?: string; fim?: string };
+  onClickAtrasados?: () => void;
+  atrasadosAtivo?: boolean;
 }
 
 const HORAS_DIA_UTIL = 8;
@@ -28,7 +31,7 @@ function calcularPrevisao(
   let dias = 0;
   const cur = new Date(start);
   while (cur <= end) {
-    const dow = cur.getDay(); // 0=dom, 6=sab
+    const dow = cur.getDay();
     const iso = cur.toISOString().slice(0, 10);
     if (dow >= 1 && dow <= 5 && !isDiaForaPrevisao(iso)) dias++;
     cur.setDate(cur.getDate() + 1);
@@ -37,9 +40,9 @@ function calcularPrevisao(
   return { dias, horas, valor: horas * valorHoraDefault };
 }
 
-export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, periodo }: DashboardCardsProps) {
+export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, periodo, onClickAtrasados, atrasadosAtivo }: DashboardCardsProps) {
   const { servicos } = useServicos();
-  const { isDiaNaoComputado, isDiaForaPrevisao } = useFeriados();
+  const { isDiaForaPrevisao } = useFeriados();
 
   const getValorHora = (a: Atendimento) => {
     if (a.servico_id) {
@@ -52,19 +55,16 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, 
   const stats = useMemo(() => {
     const pendentes = atendimentos.filter(a => a.status !== 'APONTADO');
     const atrasados = pendentes.filter(a => calcularStatusPrazo(a.data) === 'ATRASADO');
-    const computaveis = atendimentos.filter(a => !isDiaNaoComputado(a.data));
-    const totalHoras = computaveis.reduce((s, a) => s + a.duracao_horas, 0);
-    const valorTotal = computaveis.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
-    const naoComputados = atendimentos.length - computaveis.length;
+    const totalHoras = atendimentos.reduce((s, a) => s + a.duracao_horas, 0);
+    const valorTotal = atendimentos.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
 
     return {
       total: atendimentos.length,
       totalHoras, valorTotal,
       pendentes: pendentes.length,
       atrasados: atrasados.length,
-      naoComputados,
     };
-  }, [atendimentos, servicos, isDiaNaoComputado]);
+  }, [atendimentos, servicos]);
 
   const previsao = useMemo(
     () => calcularPrevisao(periodo?.inicio, periodo?.fim, (d) => isDiaForaPrevisao(d), 26),
@@ -81,10 +81,9 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, 
           {!ocultarValores ? 'Ocultar valores' : 'Mostrar valores'}
         </Button>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <Card icon={FileText} label="Atendimentos" value={String(stats.total)} sub="no período filtrado" />
 
-        {/* Card mesclado: Horas + Valor */}
         <div className="glass-card p-4 space-y-1">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
@@ -95,10 +94,23 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, 
         </div>
 
         <Card icon={Timer} label="Pendentes" value={String(stats.pendentes)} sub="sem apontamento" color="text-muted-foreground" />
-        <Card icon={AlertTriangle} label="Atrasados" value={String(stats.atrasados)} sub="5+ dias" color="text-destructive" />
-        <Card icon={Plane} label="Férias/Feriados/Folga" value={String(stats.naoComputados)} sub="não computados" color="text-cyan-400" />
 
-        {/* Previsão */}
+        <button
+          type="button"
+          onClick={onClickAtrasados}
+          className={cn(
+            "glass-card p-4 space-y-2 text-left transition-all hover:scale-[1.02]",
+            atrasadosAtivo && 'ring-2 ring-destructive'
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Atrasados</span>
+          </div>
+          <p className="text-2xl font-bold text-destructive">{stats.atrasados}</p>
+          <p className="text-xs text-muted-foreground">{atrasadosAtivo ? 'filtro ativo • clique para limpar' : '5+ dias • clique para filtrar'}</p>
+        </button>
+
         <div className="glass-card p-4 space-y-1">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-400" />

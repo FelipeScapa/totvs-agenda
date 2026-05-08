@@ -19,11 +19,13 @@ import { formatarData } from '@/lib/atendimento-utils';
 const STATUS_COLORS: Record<string, string> = {
   ABERTA: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   EM_ANDAMENTO: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  VALIDACAO: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   CONCLUIDA: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 const STATUS_LABELS: Record<string, string> = {
   ABERTA: 'Aberta',
   EM_ANDAMENTO: 'Em andamento',
+  VALIDACAO: 'Em validação',
   CONCLUIDA: 'Concluída',
 };
 const PRIO_COLORS: Record<string, string> = {
@@ -35,7 +37,7 @@ const PRIO_COLORS: Record<string, string> = {
 type OrdemKey = 'STATUS_PRIORIDADE' | 'PRIORIDADE' | 'STATUS' | 'PRAZO' | 'CRIACAO';
 
 const PRIO_RANK = { ALTA: 0, MEDIA: 1, BAIXA: 2 };
-const STATUS_RANK = { EM_ANDAMENTO: 0, ABERTA: 1, CONCLUIDA: 2 };
+const STATUS_RANK = { EM_ANDAMENTO: 0, ABERTA: 1, VALIDACAO: 2, CONCLUIDA: 3 };
 
 export function PendenciasView() {
   const { pendencias, adicionar, atualizar, remover } = usePendencias();
@@ -90,6 +92,7 @@ export function PendenciasView() {
             <SelectItem value="TODOS">Todos os status</SelectItem>
             <SelectItem value="ABERTA">Aberta</SelectItem>
             <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+            <SelectItem value="VALIDACAO">Em validação</SelectItem>
             <SelectItem value="CONCLUIDA">Concluída</SelectItem>
           </SelectContent>
         </Select>
@@ -141,6 +144,7 @@ export function PendenciasView() {
                     <SelectContent>
                       <SelectItem value="ABERTA">Aberta</SelectItem>
                       <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+                      <SelectItem value="VALIDACAO">Em validação</SelectItem>
                       <SelectItem value="CONCLUIDA">Concluída</SelectItem>
                     </SelectContent>
                   </Select>
@@ -183,7 +187,7 @@ function PendenciaForm({
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [prioridade, setPrioridade] = useState<'BAIXA' | 'MEDIA' | 'ALTA'>('MEDIA');
-  const [status, setStatus] = useState<'ABERTA' | 'EM_ANDAMENTO' | 'CONCLUIDA'>('ABERTA');
+  const [status, setStatus] = useState<'ABERTA' | 'EM_ANDAMENTO' | 'VALIDACAO' | 'CONCLUIDA'>('ABERTA');
   const [prazo, setPrazo] = useState<Date | undefined>();
 
   useEffect(() => {
@@ -258,6 +262,7 @@ function PendenciaForm({
                 <SelectContent>
                   <SelectItem value="ABERTA">Aberta</SelectItem>
                   <SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem>
+                  <SelectItem value="VALIDACAO">Em validação</SelectItem>
                   <SelectItem value="CONCLUIDA">Concluída</SelectItem>
                 </SelectContent>
               </Select>

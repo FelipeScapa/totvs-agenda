@@ -38,16 +38,24 @@ const Index = () => {
   const [clienteOpen, setClienteOpen] = useState(false);
   const [tipoOpen, setTipoOpen] = useState(false);
   const [servicoOpen, setServicoOpen] = useState(false);
-  const [filters, setFilters] = useState<FiltersState>({ status: [], clientes: [], servicos: [] });
+  const [filters, setFilters] = useState<FiltersState>({ modo: 'fechamento', fechamentoRef: new Date(), status: [], clientes: [], servicos: [] });
   const [ocultarValores, setOcultarValores] = useState(false);
+  const [apenasAtrasados, setApenasAtrasados] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [feriadosOpen, setFeriadosOpen] = useState(false);
   const [appTab, setAppTab] = useState<'agenda' | 'financeiro'>('agenda');
 
   const atendimentosFiltrados = useMemo(() => {
-    return aplicarFiltros(atendimentos, filters)
-      .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
-  }, [atendimentos, filters]);
+    let lista = aplicarFiltros(atendimentos, filters);
+    if (apenasAtrasados) {
+      lista = lista.filter(a => a.status !== 'APONTADO' && (() => {
+        const hoje = new Date(); hoje.setHours(0,0,0,0);
+        const d = new Date(a.data + 'T00:00:00');
+        return (hoje.getTime() - d.getTime()) / 86400000 >= 5;
+      })());
+    }
+    return lista.sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio));
+  }, [atendimentos, filters, apenasAtrasados]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -180,7 +188,7 @@ const Index = () => {
 
           <TabsContent value="atendimentos" className="space-y-6">
             <QuickMode onSave={adicionar} />
-            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} periodo={periodoFiltro(filters)} />
+            <DashboardCards atendimentos={atendimentosFiltrados} ocultarValores={ocultarValores} onToggleOcultar={() => setOcultarValores(v => !v)} periodo={periodoFiltro(filters)} onClickAtrasados={() => setApenasAtrasados(v => !v)} atrasadosAtivo={apenasAtrasados} />
 
             {/* Totalizador de status (clicável - multi) */}
             <div className="flex flex-wrap gap-2">
