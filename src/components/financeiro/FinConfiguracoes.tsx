@@ -27,17 +27,18 @@ export function FinConfiguracoes() {
 
   const tiposEmUso = new Set(transacoes.map(t => t.tipo_id).filter(Boolean));
   const modoDiv = divisao.modo ?? 'percentual';
+  const fonteDiv = divisao.fonte ?? 'recebido';
 
-  // Receita do mês para divisão dos ganhos
+  // Receita do mês para divisão dos ganhos — previsto ou apenas recebido
   const receitaMesDivisao = useMemo(() => {
     return todasComProjecao(transacoes, financiamentos, mesLimite)
-      .filter(t => mesDeData(t.data) === mesLimite && t.movimento === 'RECEITA' && t.pago)
+      .filter(t => mesDeData(t.data) === mesLimite && t.movimento === 'RECEITA' && (fonteDiv === 'previsto' || t.pago))
       .filter(t => {
         const cat = categorias.find(c => c.id === t.categoria_id);
         return cat?.somar_nos_ganhos !== false;
       })
       .reduce((s, t) => s + t.valor, 0);
-  }, [transacoes, financiamentos, mesLimite, categorias]);
+  }, [transacoes, financiamentos, mesLimite, categorias, fonteDiv]);
 
   const totalDivisao = Object.values(divisao.porcentagens).reduce((s, n) => s + (Number(n) || 0), 0);
   const totalLimitesMes = limites.filter(l => l.mes === mesLimite).reduce((s, l) => s + l.valor, 0);
@@ -163,7 +164,14 @@ export function FinConfiguracoes() {
               <SelectItem value="valor">Por valor fixo</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground">Receita do mês: <strong className="text-emerald-400">{fmtBRL(receitaMesDivisao)}</strong></span>
+          <Select value={fonteDiv} onValueChange={v => setDiv({ ...divisao, fonte: v as any })}>
+            <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recebido">Receita já recebida</SelectItem>
+              <SelectItem value="previsto">Receita prevista do mês</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">Base: <strong className="text-emerald-400">{fmtBRL(receitaMesDivisao)}</strong></span>
         </div>
         {modoDiv === 'percentual' && (
           <p className="text-xs text-muted-foreground">Total: <span className={totalDivisao === 100 ? 'text-primary' : 'text-warning'}>{totalDivisao}%</span></p>
