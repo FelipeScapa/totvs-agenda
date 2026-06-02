@@ -1,25 +1,38 @@
 import { useMemo, useState } from 'react';
 import { useFinTransacoes, useFinFinanciamentos } from '@/hooks/use-financeiro';
-import { agregarDevedores, fmtBRL, transacoesComFinanciamentos } from '@/lib/financeiro-utils';
+import { agregarDevedores, fmtBRL, transacoesComFinanciamentos, mesAtual, mesDeData } from '@/lib/financeiro-utils';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ChevronDown, ChevronRight, CheckCircle2, RotateCcw, Users } from 'lucide-react';
+import { MesSelector } from './MesSelector';
 
 export function FinDevedoresView() {
   const { transacoes, update, add } = useFinTransacoes();
   const { financiamentos } = useFinFinanciamentos();
-  const todas = useMemo(() => transacoesComFinanciamentos(transacoes, financiamentos), [transacoes, financiamentos]);
-  const grupos = useMemo(() => agregarDevedores(todas), [todas]);
-  const [aberto, setAberto] = useState<string | null>(null);
+  const [mes, setMes] = useState(mesAtual());
+  const [incluirFuturos, setIncluirFuturos] = useState(false);
 
+  const todas = useMemo(() => transacoesComFinanciamentos(transacoes, financiamentos), [transacoes, financiamentos]);
+
+  // Filtra: do mês atual + passadas não quitadas, exclui futuras (a menos que toggle)
+  const filtradas = useMemo(() => {
+    return todas.filter(t => {
+      const m = mesDeData(t.data);
+      if (incluirFuturos) return true;
+      return m <= mes;
+    });
+  }, [todas, mes, incluirFuturos]);
+
+  const grupos = useMemo(() => agregarDevedores(filtradas), [filtradas]);
+  const [aberto, setAberto] = useState<string | null>(null);
   const totalGeral = grupos.reduce((s, g) => s + g.total, 0);
 
   const quitar = (transId: string, nome: string, ja: string[] | undefined) => {
     const real = transacoes.find(t => t.id === transId);
     const novos = [...(ja ?? []), nome];
-    if (real) {
-      update(real.id, { pessoas_quitadas: novos });
-    } else {
-      // materializar transação virtual
+    if (real) update(real.id, { pessoas_quitadas: novos });
+    else {
       const virt = todas.find(t => t.id === transId);
       if (!virt) return;
       const { id, data_criacao, ...rest } = virt;
@@ -35,16 +48,23 @@ export function FinDevedoresView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-sm uppercase text-muted-foreground tracking-wider flex items-center gap-2"><Users className="w-4 h-4" /> Devedores</h2>
-          <p className="text-2xl font-bold mt-1">{fmtBRL(totalGeral)} <span className="text-xs text-muted-foreground font-normal">a receber no total</span></p>
+          <p className="text-2xl font-bold mt-1">{fmtBRL(totalGeral)} <span className="text-xs text-muted-foreground font-normal">a receber até {mes}</span></p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <MesSelector mes={mes} onChange={setMes} />
+          <div className="flex items-center gap-2">
+            <Switch id="fut" checked={incluirFuturos} onCheckedChange={setIncluirFuturos} />
+            <Label htmlFor="fut" className="text-xs cursor-pointer">Incluir futuros</Label>
+          </div>
         </div>
       </div>
 
       {grupos.length === 0 && (
         <div className="glass-card p-6 text-center text-sm text-muted-foreground">
-          Nenhum devedor pendente. Adicione pessoas em transações ou financiamentos para dividir despesas.
+          Nenhum devedor pendente até este mês.
         </div>
       )}
 
@@ -53,10 +73,7 @@ export function FinDevedoresView() {
           const isOpen = aberto === g.nome;
           return (
             <div key={g.nome} className="glass-card overflow-hidden">
-              <button
-                onClick={() => setAberto(isOpen ? null : g.nome)}
-                className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition"
-              >
+              <button onClick={() => setAberto(isOpen ? null : g.nome)} className="w-full flex items-center justify-between p-4 hover:bg-accent/30 transition">
                 <div className="flex items-center gap-2">
                   {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   <div className="text-left">
@@ -94,8 +111,7 @@ export function FinDevedoresView() {
         })}
       </div>
 
-      {/* Quitados recentes */}
-      <QuitadosRecentes transacoes={todas} desfazer={desfazer} />
+      <QuitadosRecentes transacoes={filtradas} desfazer={desfazer} />
     </div>
   );
 }
