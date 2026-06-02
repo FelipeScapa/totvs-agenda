@@ -107,7 +107,7 @@ export function FinFinanciamentosView() {
           <div className="space-y-3">
             <div><Label>Descrição</Label><Input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex.: Moto Honda" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Valor da parcela</Label><Input type="number" step="0.01" value={form.valor_parcela} onChange={e => setForm({ ...form, valor_parcela: Number(e.target.value) || 0 })} /></div>
+              <div><Label>Valor da parcela</Label><CurrencyInput value={form.valor_parcela} onChange={v => setForm({ ...form, valor_parcela: v })} /></div>
               <div><Label>Dia de vencimento</Label><Input type="number" min={1} max={28} value={form.dia_vencimento} onChange={e => setForm({ ...form, dia_vencimento: Number(e.target.value) || 1 })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
