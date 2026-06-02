@@ -162,8 +162,11 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
   const [editParc, setEditParc] = useState<FinTransacao | null>(null);
   const [efetivar, setEfetivar] = useState<FinTransacao | null>(null);
 
+  // Helper: localizar transação real pela combinação financiamento+parcela
+  const findReal = (p: FinTransacao) => transacoes.find(r => r.financiamento_id === f.id && r.parcela === p.parcela);
+
   const togglePago = (p: FinTransacao) => {
-    const real = transacoes.find(r => r.id === p.id);
+    const real = findReal(p);
     if (real) update(real.id, { pago: !real.pago });
     else { const { id, data_criacao, ...rest } = p; add({ ...rest, pago: !p.pago }); }
   };
@@ -182,7 +185,7 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
           </thead>
           <tbody>
             {parcelas.map(p => {
-              const real = transacoes.find(r => r.id === p.id);
+              const real = findReal(p);
               const t = real ?? p;
               const conta = contas.find(c => c.id === t.conta_id);
               return (
@@ -217,7 +220,7 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
         onClose={() => setEditParc(null)}
         onSave={(patch) => {
           if (!editParc) return;
-          const real = transacoes.find(r => r.id === editParc.id);
+          const real = findReal(editParc);
           if (real) update(real.id, patch);
           else { const { id, data_criacao, ...rest } = editParc; add({ ...rest, ...patch }); }
           setEditParc(null);
@@ -228,7 +231,7 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
         onClose={() => setEfetivar(null)}
         onConfirm={(patch) => {
           if (!efetivar) return;
-          const real = transacoes.find(r => r.id === efetivar.id);
+          const real = findReal(efetivar);
           if (real) update(real.id, { ...patch, pago: true });
           else { const { id, data_criacao, ...rest } = efetivar; add({ ...rest, ...patch, pago: true }); }
           setEfetivar(null);
