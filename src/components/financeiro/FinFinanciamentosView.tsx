@@ -11,6 +11,7 @@ import { Plus, Trash2, ChevronRight, ArrowLeft, Pencil, MoreVertical, CheckCircl
 import { fmtBRL, gerarTransacoesFinanciamento, mesAtual } from '@/lib/financeiro-utils';
 import { FinFinanciamento, FinTransacao, FinFinanciamentoPessoa } from '@/types/financeiro';
 import { PessoasEditor } from './PessoasEditor';
+import { CurrencyInput } from './CurrencyInput';
 
 export function FinFinanciamentosView() {
   const { financiamentos, add, update, remove } = useFinFinanciamentos();
