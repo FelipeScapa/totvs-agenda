@@ -253,7 +253,7 @@ function ParcelaEditDialog({ parcela, onClose, onSave }: { parcela: FinTransacao
       <DialogContent>
         <DialogHeader><DialogTitle>Editar parcela {parcela?.parcela}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Valor</Label><Input type="number" step="0.01" value={valor} onChange={e => setValor(Number(e.target.value) || 0)} /></div>
+          <div><Label>Valor</Label><CurrencyInput value={valor} onChange={setValor} /></div>
           <div><Label>Data</Label><Input type="date" value={data} onChange={e => setData(e.target.value)} /></div>
           <div>
             <Label>Conta</Label>
@@ -283,7 +283,7 @@ function EfetivarParcelaDialog({ parcela, onClose, onConfirm }: { parcela: FinTr
       <DialogContent>
         <DialogHeader><DialogTitle>Efetivar parcela {parcela?.parcela}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Valor</Label><Input type="number" step="0.01" value={valor} onChange={e => setValor(Number(e.target.value) || 0)} /></div>
+          <div><Label>Valor</Label><CurrencyInput value={valor} onChange={setValor} /></div>
           <div><Label>Data do pagamento</Label><Input type="date" value={data} onChange={e => setData(e.target.value)} /></div>
           <div>
             <Label>Conta</Label>
