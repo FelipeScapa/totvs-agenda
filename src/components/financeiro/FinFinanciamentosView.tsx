@@ -11,6 +11,7 @@ import { Plus, Trash2, ChevronRight, ArrowLeft, Pencil, MoreVertical, CheckCircl
 import { fmtBRL, gerarTransacoesFinanciamento, mesAtual } from '@/lib/financeiro-utils';
 import { FinFinanciamento, FinTransacao, FinFinanciamentoPessoa } from '@/types/financeiro';
 import { PessoasEditor } from './PessoasEditor';
+import { CurrencyInput } from './CurrencyInput';
 
 export function FinFinanciamentosView() {
   const { financiamentos, add, update, remove } = useFinFinanciamentos();
@@ -106,7 +107,7 @@ export function FinFinanciamentosView() {
           <div className="space-y-3">
             <div><Label>Descrição</Label><Input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex.: Moto Honda" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Valor da parcela</Label><Input type="number" step="0.01" value={form.valor_parcela} onChange={e => setForm({ ...form, valor_parcela: Number(e.target.value) || 0 })} /></div>
+              <div><Label>Valor da parcela</Label><CurrencyInput value={form.valor_parcela} onChange={v => setForm({ ...form, valor_parcela: v })} /></div>
               <div><Label>Dia de vencimento</Label><Input type="number" min={1} max={28} value={form.dia_vencimento} onChange={e => setForm({ ...form, dia_vencimento: Number(e.target.value) || 1 })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -135,6 +136,7 @@ export function FinFinanciamentosView() {
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>{tipos.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}</SelectContent>
                 </Select>
+              </div>
             </div>
             <PessoasEditor
               valorTotal={form.valor_parcela}
@@ -143,7 +145,6 @@ export function FinFinanciamentosView() {
               pessoas={form.pessoas ?? []}
               onChange={ps => setForm({ ...form, pessoas: ps })}
             />
-          </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -162,8 +163,11 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
   const [editParc, setEditParc] = useState<FinTransacao | null>(null);
   const [efetivar, setEfetivar] = useState<FinTransacao | null>(null);
 
+  // Helper: localizar transação real pela combinação financiamento+parcela
+  const findReal = (p: FinTransacao) => transacoes.find(r => r.financiamento_id === f.id && r.parcela === p.parcela);
+
   const togglePago = (p: FinTransacao) => {
-    const real = transacoes.find(r => r.id === p.id);
+    const real = findReal(p);
     if (real) update(real.id, { pago: !real.pago });
     else { const { id, data_criacao, ...rest } = p; add({ ...rest, pago: !p.pago }); }
   };
@@ -182,7 +186,7 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
           </thead>
           <tbody>
             {parcelas.map(p => {
-              const real = transacoes.find(r => r.id === p.id);
+              const real = findReal(p);
               const t = real ?? p;
               const conta = contas.find(c => c.id === t.conta_id);
               return (
@@ -217,7 +221,7 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
         onClose={() => setEditParc(null)}
         onSave={(patch) => {
           if (!editParc) return;
-          const real = transacoes.find(r => r.id === editParc.id);
+          const real = findReal(editParc);
           if (real) update(real.id, patch);
           else { const { id, data_criacao, ...rest } = editParc; add({ ...rest, ...patch }); }
           setEditParc(null);
@@ -228,7 +232,7 @@ function DetalheFinanciamento({ f, onBack, onEditFin }: { f: FinFinanciamento; o
         onClose={() => setEfetivar(null)}
         onConfirm={(patch) => {
           if (!efetivar) return;
-          const real = transacoes.find(r => r.id === efetivar.id);
+          const real = findReal(efetivar);
           if (real) update(real.id, { ...patch, pago: true });
           else { const { id, data_criacao, ...rest } = efetivar; add({ ...rest, ...patch, pago: true }); }
           setEfetivar(null);
@@ -249,7 +253,7 @@ function ParcelaEditDialog({ parcela, onClose, onSave }: { parcela: FinTransacao
       <DialogContent>
         <DialogHeader><DialogTitle>Editar parcela {parcela?.parcela}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Valor</Label><Input type="number" step="0.01" value={valor} onChange={e => setValor(Number(e.target.value) || 0)} /></div>
+          <div><Label>Valor</Label><CurrencyInput value={valor} onChange={setValor} /></div>
           <div><Label>Data</Label><Input type="date" value={data} onChange={e => setData(e.target.value)} /></div>
           <div>
             <Label>Conta</Label>
@@ -279,7 +283,7 @@ function EfetivarParcelaDialog({ parcela, onClose, onConfirm }: { parcela: FinTr
       <DialogContent>
         <DialogHeader><DialogTitle>Efetivar parcela {parcela?.parcela}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Valor</Label><Input type="number" step="0.01" value={valor} onChange={e => setValor(Number(e.target.value) || 0)} /></div>
+          <div><Label>Valor</Label><CurrencyInput value={valor} onChange={setValor} /></div>
           <div><Label>Data do pagamento</Label><Input type="date" value={data} onChange={e => setData(e.target.value)} /></div>
           <div>
             <Label>Conta</Label>

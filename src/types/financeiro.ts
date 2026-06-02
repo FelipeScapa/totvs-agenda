@@ -1,5 +1,5 @@
 export type FinTipoMov = 'RECEITA' | 'DESPESA';
-export type FinTipoGasto = string; // id de FinTipo (Essencial, Qualidade, Investimento, Outros…)
+export type FinTipoGasto = string;
 
 export interface FinInstituicao {
   id: string;
@@ -12,8 +12,8 @@ export interface FinConta {
   nome: string;
   instituicao_id?: string;
   saldo_inicial: number;
-  vr: boolean;             // se é conta tipo VR
-  somar_no_total: boolean; // se entra no card "Valor Atual"
+  vr: boolean;
+  somar_no_total: boolean;
   arquivada?: boolean;
   data_criacao: string;
 }
@@ -22,50 +22,49 @@ export interface FinCategoria {
   id: string;
   nome: string;
   movimento: FinTipoMov;
-  parent_id?: string;             // subcategoria (legado)
-  tipo_id?: string;               // Tipo padrão (Essencial/Qualidade/Investimento) — só DESPESA
-  somar_nos_ganhos?: boolean;     // só para RECEITA
+  parent_id?: string;
+  tipo_id?: string;
+  somar_nos_ganhos?: boolean;
   cor?: string;
+  sistema?: boolean; // categorias automáticas (ex.: Devedor)
 }
 
 export interface FinTipo {
   id: string;
-  nome: string;       // Essencial, Qualidade, Investimento…
+  nome: string;
   cor?: string;
 }
 
 export interface FinDivisao {
-  // Distribuição percentual ou em valor dos ganhos por tipo
-  // map tipo_id -> número
   porcentagens: Record<string, number>;
   modo?: 'percentual' | 'valor';
+  fonte?: 'previsto' | 'recebido'; // base de receita para o cálculo
 }
 
 export interface FinLimite {
   id: string;
   categoria_id: string;
-  mes: string;          // 'YYYY-MM'
+  mes: string;
   valor: number;
 }
 
 export interface FinTransacao {
   id: string;
-  data: string;             // YYYY-MM-DD
+  data: string;
   descricao: string;
   movimento: FinTipoMov;
   categoria_id: string;
-  tipo_id?: string;         // só faz sentido para DESPESA
+  tipo_id?: string;
   conta_id: string;
   valor: number;
   pago: boolean;
   observacao?: string;
-  fixa?: boolean;           // despesa/receita fixa — repete todo mês
-  pessoas?: FinFinanciamentoPessoa[];   // devedores que dividem a despesa
-  pessoas_quitadas?: string[];          // nomes já quitados
-  // referências
+  fixa?: boolean;
+  pessoas?: FinFinanciamentoPessoa[];
+  pessoas_quitadas?: string[];
   financiamento_id?: string;
   parcela?: number;
-  ajuste?: boolean;         // ajuste de saldo
+  ajuste?: boolean;
   data_criacao: string;
 }
 
@@ -83,19 +82,25 @@ export interface FinFinanciamento {
   tipo_id?: string;
   valor_parcela: number;
   total_parcelas: number;
-  parcela_atual: number;          // parcela referente ao mês de referência
-  mes_referencia: string;         // 'YYYY-MM' do mês em que está a parcela_atual
-  dia_vencimento: number;         // 1..31
+  parcela_atual: number;
+  mes_referencia: string;
+  dia_vencimento: number;
   pessoas?: FinFinanciamentoPessoa[];
   data_criacao: string;
 }
+
+export type FinDividaTipo = 'AVISTA' | 'PARCELADA';
 
 export interface FinDivida {
   id: string;
   descricao: string;
   credor: string;
-  valor_total: number;
+  tipo: FinDividaTipo;
+  valor_total: number;          // total bruto
   valor_pago: number;
+  valor_avista?: number;        // condição para quitação à vista
+  valor_parcela?: number;       // se parcelada
+  total_parcelas?: number;      // se parcelada
   observacao?: string;
   data_criacao: string;
 }
@@ -106,3 +111,5 @@ export const FIN_TIPOS_PADRAO: FinTipo[] = [
   { id: 'investimento', nome: 'Investimento', cor: '#22c55e' },
   { id: 'outros', nome: 'Outros', cor: '#64748b' },
 ];
+
+export const CATEGORIA_DEVEDOR_ID = 'devedor';

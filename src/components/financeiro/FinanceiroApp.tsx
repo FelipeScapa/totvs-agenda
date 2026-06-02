@@ -33,7 +33,7 @@ export function FinanceiroApp() {
         />
       </TabsContent>
       <TabsContent value="contas"><FinContasView /></TabsContent>
-      <TabsContent value="transacoes"><FinTransacoesView movimentoInicial={movInicial} mesInicial={mesInicial} /></TabsContent>
+      <TabsContent value="transacoes"><FinTransacoesView movimentoInicial={movInicial} mesInicial={mesInicial} onAbrirContas={() => setTab('contas')} /></TabsContent>
       <TabsContent value="financiamentos"><FinFinanciamentosView /></TabsContent>
       <TabsContent value="devedores"><FinDevedoresView /></TabsContent>
       <TabsContent value="dividas"><FinDividasView /></TabsContent>

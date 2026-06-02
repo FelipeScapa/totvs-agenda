@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, X } from 'lucide-react';
 import { FinFinanciamentoPessoa } from '@/types/financeiro';
 import { fmtBRL } from '@/lib/financeiro-utils';
+import { CurrencyInput } from './CurrencyInput';
 
 interface Props {
   valorTotal: number;
@@ -46,7 +47,7 @@ export function PessoasEditor({ valorTotal, modo, onModoChange, pessoas, onChang
             {modo === 'percentual' ? (
               <Input type="number" step="0.01" value={p.porcentagem ?? 0} onChange={e => upd(i, { porcentagem: Number(e.target.value) || 0 })} className="h-8" />
             ) : (
-              <Input type="number" step="0.01" value={p.valor ?? 0} onChange={e => upd(i, { valor: Number(e.target.value) || 0 })} className="h-8" />
+              <CurrencyInput value={p.valor ?? 0} onChange={v => upd(i, { valor: v })} className="h-8" />
             )}
             <span className="text-xs text-muted-foreground w-20 text-right">{fmtBRL(v)}</span>
             <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => rem(i)}><X className="w-3 h-3" /></Button>
