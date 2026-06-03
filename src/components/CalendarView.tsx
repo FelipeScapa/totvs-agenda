@@ -234,7 +234,7 @@ type GetFeriado = (data: string) => { tipo: 'FERIAS' | 'FERIADO' | 'FOLGA'; desc
 
 function feriadoStyles(tipo: 'FERIAS' | 'FERIADO' | 'FOLGA') {
   if (tipo === 'FERIAS') return { bg: 'bg-cyan-500/10 ring-cyan-500/40', badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30', icon: Plane, label: 'Férias' };
-  if (tipo === 'FOLGA') return { bg: 'bg-amber-500/10 ring-amber-500/40', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: Coffee, label: 'Folga' };
+  if (tipo === 'FOLGA') return { bg: 'bg-red-500/10 ring-red-500/40', badge: 'bg-red-500/20 text-red-300 border-red-500/30', icon: Coffee, label: 'Folga' };
   return { bg: 'bg-purple-500/10 ring-purple-500/40', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: PartyPopper, label: 'Feriado' };
 }
 
