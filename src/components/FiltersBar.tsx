@@ -29,8 +29,8 @@ export interface FiltersState {
 export function periodoFechamento(ref: Date): { inicio: string; fim: string; label: string } {
   const ano = ref.getFullYear();
   const mes = ref.getMonth();
-  const inicio = new Date(ano, mes - 1, 25);
-  const fim = new Date(ano, mes, 26);
+  const inicio = new Date(ano, mes - 1, 26);
+  const fim = new Date(ano, mes, 25);
   return {
     inicio: format(inicio, 'yyyy-MM-dd'),
     fim: format(fim, 'yyyy-MM-dd'),
