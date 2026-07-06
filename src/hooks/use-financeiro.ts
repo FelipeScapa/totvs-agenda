@@ -46,10 +46,10 @@ export function useFinContas() {
   return {
     contas: list,
     add: (c: Omit<FinConta, 'id' | 'data_criacao'>) =>
-      setList([{ ...c, id: uuid(), data_criacao: new Date().toISOString() }, ...list]),
+      setList(prev => [{ ...c, id: uuid(), data_criacao: new Date().toISOString() }, ...prev]),
     update: (id: string, patch: Partial<FinConta>) =>
-      setList(list.map(i => i.id === id ? { ...i, ...patch } : i)),
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+      setList(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i)),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
 
@@ -57,8 +57,8 @@ export function useFinInstituicoes() {
   const [list, setList] = useStored<FinInstituicao[]>(K.instituicoes, INSTITUICOES_PADRAO);
   return {
     instituicoes: list,
-    add: (nome: string, cor?: string) => setList([{ id: uuid(), nome, cor }, ...list]),
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+    add: (nome: string, cor?: string) => setList(prev => [{ id: uuid(), nome, cor }, ...prev]),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
 
@@ -66,10 +66,10 @@ export function useFinCategorias() {
   const [list, setList] = useStored<FinCategoria[]>(K.categorias, CATEGORIAS_PADRAO);
   return {
     categorias: list,
-    add: (c: Omit<FinCategoria, 'id'>) => setList([{ ...c, id: uuid() }, ...list]),
+    add: (c: Omit<FinCategoria, 'id'>) => setList(prev => [{ ...c, id: uuid() }, ...prev]),
     update: (id: string, patch: Partial<FinCategoria>) =>
-      setList(list.map(i => i.id === id ? { ...i, ...patch } : i)),
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+      setList(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i)),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
 
@@ -77,10 +77,10 @@ export function useFinTipos() {
   const [list, setList] = useStored<FinTipo[]>(K.tipos, FIN_TIPOS_PADRAO);
   return {
     tipos: list,
-    add: (nome: string, cor?: string) => setList([{ id: uuid(), nome, cor }, ...list]),
+    add: (nome: string, cor?: string) => setList(prev => [{ id: uuid(), nome, cor }, ...prev]),
     update: (id: string, patch: Partial<FinTipo>) =>
-      setList(list.map(i => i.id === id ? { ...i, ...patch } : i)),
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+      setList(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i)),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
 
@@ -89,10 +89,10 @@ export function useFinTransacoes() {
   return {
     transacoes: list,
     add: (t: Omit<FinTransacao, 'id' | 'data_criacao'>) =>
-      setList([{ ...t, id: uuid(), data_criacao: new Date().toISOString() }, ...list]),
+      setList(prev => [{ ...t, id: uuid(), data_criacao: new Date().toISOString() }, ...prev]),
     update: (id: string, patch: Partial<FinTransacao>) =>
-      setList(list.map(i => i.id === id ? { ...i, ...patch } : i)),
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+      setList(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i)),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
 
@@ -101,11 +101,13 @@ export function useFinLimites() {
   return {
     limites: list,
     set: (categoria_id: string, mes: string, valor: number) => {
-      const existing = list.find(l => l.categoria_id === categoria_id && l.mes === mes);
-      if (existing) setList(list.map(l => l.id === existing.id ? { ...l, valor } : l));
-      else setList([{ id: uuid(), categoria_id, mes, valor }, ...list]);
+      setList(prev => {
+        const existing = prev.find(l => l.categoria_id === categoria_id && l.mes === mes);
+        if (existing) return prev.map(l => l.id === existing.id ? { ...l, valor } : l);
+        return [{ id: uuid(), categoria_id, mes, valor }, ...prev];
+      });
     },
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
 
@@ -121,10 +123,10 @@ export function useFinFinanciamentos() {
   return {
     financiamentos: list,
     add: (f: Omit<FinFinanciamento, 'id' | 'data_criacao'>) =>
-      setList([{ ...f, id: uuid(), data_criacao: new Date().toISOString() }, ...list]),
+      setList(prev => [{ ...f, id: uuid(), data_criacao: new Date().toISOString() }, ...prev]),
     update: (id: string, patch: Partial<FinFinanciamento>) =>
-      setList(list.map(i => i.id === id ? { ...i, ...patch } : i)),
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+      setList(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i)),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
 
@@ -133,9 +135,9 @@ export function useFinDividas() {
   return {
     dividas: list,
     add: (d: Omit<FinDivida, 'id' | 'data_criacao'>) =>
-      setList([{ ...d, id: uuid(), data_criacao: new Date().toISOString() }, ...list]),
+      setList(prev => [{ ...d, id: uuid(), data_criacao: new Date().toISOString() }, ...prev]),
     update: (id: string, patch: Partial<FinDivida>) =>
-      setList(list.map(i => i.id === id ? { ...i, ...patch } : i)),
-    remove: (id: string) => setList(list.filter(i => i.id !== id)),
+      setList(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i)),
+    remove: (id: string) => setList(prev => prev.filter(i => i.id !== id)),
   };
 }
