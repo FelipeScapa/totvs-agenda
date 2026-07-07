@@ -14,7 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      atendimentos: {
+        Row: {
+          cliente: string
+          data: string
+          data_atualizacao: string
+          data_criacao: string
+          descricao: string
+          duracao_horas: number
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          intervalo_fim: string | null
+          intervalo_inicio: string | null
+          observacoes: string
+          servico_id: string | null
+          status: string
+          tipo: string
+        }
+        Insert: {
+          cliente: string
+          data: string
+          data_atualizacao?: string
+          data_criacao?: string
+          descricao?: string
+          duracao_horas?: number
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
+          observacoes?: string
+          servico_id?: string | null
+          status: string
+          tipo: string
+        }
+        Update: {
+          cliente?: string
+          data?: string
+          data_atualizacao?: string
+          data_criacao?: string
+          descricao?: string
+          duracao_horas?: number
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
+          observacoes?: string
+          servico_id?: string | null
+          status?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          data_criacao: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          data_criacao?: string
+          id: string
+          nome: string
+        }
+        Update: {
+          data_criacao?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      feriados: {
+        Row: {
+          data_criacao: string
+          data_fim: string
+          data_inicio: string
+          descricao: string
+          id: string
+          tipo: string
+        }
+        Insert: {
+          data_criacao?: string
+          data_fim: string
+          data_inicio: string
+          descricao?: string
+          id: string
+          tipo: string
+        }
+        Update: {
+          data_criacao?: string
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string
+          id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      pendencias: {
+        Row: {
+          cliente: string
+          data_atualizacao: string
+          data_criacao: string
+          descricao: string
+          id: string
+          prazo: string | null
+          prioridade: string
+          status: string
+          titulo: string
+        }
+        Insert: {
+          cliente: string
+          data_atualizacao?: string
+          data_criacao?: string
+          descricao?: string
+          id: string
+          prazo?: string | null
+          prioridade: string
+          status: string
+          titulo: string
+        }
+        Update: {
+          cliente?: string
+          data_atualizacao?: string
+          data_criacao?: string
+          descricao?: string
+          id?: string
+          prazo?: string | null
+          prioridade?: string
+          status?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      servicos: {
+        Row: {
+          data_criacao: string
+          id: string
+          nome: string
+          valor_hora: number
+        }
+        Insert: {
+          data_criacao?: string
+          id: string
+          nome: string
+          valor_hora?: number
+        }
+        Update: {
+          data_criacao?: string
+          id?: string
+          nome?: string
+          valor_hora?: number
+        }
+        Relationships: []
+      }
+      tipos_atendimento: {
+        Row: {
+          id: string
+          label: string
+        }
+        Insert: {
+          id: string
+          label: string
+        }
+        Update: {
+          id?: string
+          label?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
