@@ -1,4 +1,5 @@
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback } from 'react';
+import { useCloudCollection, cloudInsert, cloudUpdate, cloudDelete } from '@/lib/cloud-collection';
 
 export type TipoFeriado = 'FERIAS' | 'FERIADO' | 'FOLGA';
 
@@ -11,57 +12,44 @@ export interface Feriado {
   data_criacao: string;
 }
 
-const STORAGE_KEY = 'agenda-log-feriados';
-let listeners: (() => void)[] = [];
-let cache: Feriado[] | null = null;
-
-function load(): Feriado[] {
-  if (cache) return cache;
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    cache = data ? JSON.parse(data) : [];
-  } catch { cache = []; }
-  return cache!;
-}
-
-function save(list: Feriado[]) {
-  cache = list;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  listeners.forEach(l => l());
-}
-
-function subscribe(cb: () => void) {
-  listeners.push(cb);
-  return () => { listeners = listeners.filter(l => l !== cb); };
-}
+const TABLE = 'feriados';
 
 export function useFeriados() {
-  const feriados = useSyncExternalStore(subscribe, load);
+  const { data: feriados } = useCloudCollection<Feriado>(TABLE);
 
   const adicionar = useCallback((f: Omit<Feriado, 'id' | 'data_criacao'>) => {
-    save([{ ...f, id: crypto.randomUUID(), data_criacao: new Date().toISOString() }, ...load()]);
+    cloudInsert(TABLE, { ...f, id: crypto.randomUUID(), data_criacao: new Date().toISOString() });
   }, []);
   const atualizar = useCallback((id: string, updates: Partial<Feriado>) => {
-    save(load().map(x => x.id === id ? { ...x, ...updates } : x));
+    cloudUpdate<Feriado>(TABLE, id, updates);
   }, []);
   const remover = useCallback((id: string) => {
-    save(load().filter(x => x.id !== id));
+    cloudDelete(TABLE, id);
   }, []);
 
-  const getFeriado = useCallback((data: string): Feriado | null => {
-    return feriados.find(f => data >= f.data_inicio && data <= f.data_fim) ?? null;
-  }, [feriados]);
+  const getFeriado = useCallback(
+    (data: string): Feriado | null => {
+      return feriados.find(f => data >= f.data_inicio && data <= f.data_fim) ?? null;
+    },
+    [feriados],
+  );
 
   // Não computa horas/valor: apenas FERIAS e FERIADO. FOLGA continua contabilizando se houver agenda.
-  const isDiaNaoComputado = useCallback((data: string): Feriado | null => {
-    const f = getFeriado(data);
-    return f && f.tipo !== 'FOLGA' ? f : null;
-  }, [getFeriado]);
+  const isDiaNaoComputado = useCallback(
+    (data: string): Feriado | null => {
+      const f = getFeriado(data);
+      return f && f.tipo !== 'FOLGA' ? f : null;
+    },
+    [getFeriado],
+  );
 
   // Para previsão de horas úteis: qualquer um dos 3 tipos remove o dia da previsão
-  const isDiaForaPrevisao = useCallback((data: string): boolean => {
-    return getFeriado(data) !== null;
-  }, [getFeriado]);
+  const isDiaForaPrevisao = useCallback(
+    (data: string): boolean => {
+      return getFeriado(data) !== null;
+    },
+    [getFeriado],
+  );
 
   return { feriados, adicionar, atualizar, remover, isDiaNaoComputado, getFeriado, isDiaForaPrevisao };
 }
