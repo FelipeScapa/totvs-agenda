@@ -1,36 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { Atendimento } from '@/types/atendimento';
+import { useStored } from '@/lib/storage-store';
 
 const STORAGE_KEY = 'agenda-log-atendimentos';
 
-function loadAtendimentos(): Atendimento[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveAtendimentos(atendimentos: Atendimento[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(atendimentos));
-}
-
 export function useAtendimentos() {
-  const [atendimentos, setAtendimentos] = useState<Atendimento[]>(loadAtendimentos);
-  const loadedRef = useRef(false);
-
-  useEffect(() => {
-    if (loadedRef.current) {
-      saveAtendimentos(atendimentos);
-    } else {
-      loadedRef.current = true;
-    }
-  }, [atendimentos]);
+  const [atendimentos, setAtendimentos] = useStored<Atendimento[]>(STORAGE_KEY, []);
 
   const adicionar = useCallback((atendimento: Atendimento) => {
     setAtendimentos(prev => [atendimento, ...prev]);
-  }, []);
+  }, [setAtendimentos]);
 
   const atualizar = useCallback((id: string, updates: Partial<Atendimento>) => {
     setAtendimentos(prev =>
@@ -38,11 +17,11 @@ export function useAtendimentos() {
         a.id === id ? { ...a, ...updates, data_atualizacao: new Date().toISOString() } : a
       )
     );
-  }, []);
+  }, [setAtendimentos]);
 
   const remover = useCallback((id: string) => {
     setAtendimentos(prev => prev.filter(a => a.id !== id));
-  }, []);
+  }, [setAtendimentos]);
 
   return { atendimentos, adicionar, atualizar, remover };
 }
