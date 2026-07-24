@@ -271,7 +271,10 @@ const Index = () => {
                   Atendimentos ({atendimentosFiltrados.length})
                 </h2>
                 <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1 h-8 text-xs">
-                  <Copy className="w-3 h-3" /> Copiar agendas filtradas
+                  <Copy className="w-3 h-3" /> Copiar agendas (resumo)
+                </Button>
+                <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1 h-8 text-xs">
+                  <Copy className="w-3 h-3" /> Copiar detalhado
                 </Button>
               </div>
               <AtendimentoList
