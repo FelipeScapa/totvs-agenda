@@ -221,12 +221,6 @@ const Index = () => {
               <Button variant="ghost" size="sm" onClick={() => setServicoOpen(true)} className="gap-1">
                 <Briefcase className="w-4 h-4" /> Serviços
               </Button>
-              <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1" title="Copiar agendas filtradas (resumo)">
-                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1" title="Copiar agendas filtradas (detalhado)">
-                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar detalhado</span>
-              </Button>
               <Button size="sm" onClick={() => { setEditando(null); setFormOpen(true); }} className="gap-1">
                 <Plus className="w-4 h-4" /> Novo
               </Button>
