@@ -261,6 +261,15 @@ const Index = () => {
               <FiltersBar filters={filters} setFilters={setFilters} />
             </div>
 
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1" title="Copiar agendas filtradas (resumo)">
+                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1" title="Copiar agendas filtradas (detalhado)">
+                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar detalhado</span>
+              </Button>
+            </div>
+
             <div>
               <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
