@@ -139,6 +139,58 @@ const Index = () => {
     
   };
 
+  const copiarTudoDetalhado = () => {
+    if (atendimentosFiltrados.length === 0) {
+      toast({ title: 'Nada para copiar', description: 'Nenhum atendimento no filtro atual.' });
+      return;
+    }
+    const formatarData = (d: string) => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
+    const tipoLabel = (id: string) => id;
+    const grupos = new Map<string, typeof atendimentosFiltrados>();
+    atendimentosFiltrados.forEach(a => {
+      const arr = grupos.get(a.cliente) ?? [];
+      arr.push(a);
+      grupos.set(a.cliente, arr);
+    });
+
+    let totalHoras = 0;
+    const partes: string[] = [];
+    grupos.forEach((lista, cliente) => {
+      partes.push(`═══ Cliente: ${cliente} ═══`);
+      let subHoras = 0;
+      lista
+        .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio))
+        .forEach(a => {
+          subHoras += a.duracao_horas;
+          totalHoras += a.duracao_horas;
+          partes.push(`• ${formatarData(a.data)} — ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)`);
+          partes.push(`  Status: ${STATUS_LABELS[a.status] || a.status} | Tipo: ${tipoLabel(a.tipo)}`);
+          if (a.intervalo_inicio && a.intervalo_fim) {
+            partes.push(`  Intervalo: ${a.intervalo_inicio}–${a.intervalo_fim}`);
+          }
+          if (a.descricao?.trim()) {
+            partes.push(`  Descrição: ${a.descricao.trim()}`);
+          }
+          if (a.observacoes?.trim()) {
+            partes.push(`  Observações: ${a.observacoes.trim()}`);
+          }
+          partes.push('');
+        });
+      partes.push(`Subtotal ${cliente}: ${subHoras.toFixed(2)}h`);
+      partes.push('');
+    });
+    partes.push(`TOTAL GERAL: ${atendimentosFiltrados.length} atendimento(s) — ${totalHoras.toFixed(2)}h`);
+
+    const texto = partes.join('\n').trimEnd();
+    const textarea = document.createElement('textarea');
+    textarea.value = texto;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} atendimentos com detalhes completos.` });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 px-6 py-4">
@@ -219,7 +271,10 @@ const Index = () => {
                   Atendimentos ({atendimentosFiltrados.length})
                 </h2>
                 <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1 h-8 text-xs">
-                  <Copy className="w-3 h-3" /> Copiar agendas filtradas
+                  <Copy className="w-3 h-3" /> Copiar agendas (resumo)
+                </Button>
+                <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1 h-8 text-xs">
+                  <Copy className="w-3 h-3" /> Copiar detalhado
                 </Button>
               </div>
               <AtendimentoList
