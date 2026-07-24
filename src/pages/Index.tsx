@@ -221,6 +221,12 @@ const Index = () => {
               <Button variant="ghost" size="sm" onClick={() => setServicoOpen(true)} className="gap-1">
                 <Briefcase className="w-4 h-4" /> Serviços
               </Button>
+              <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1" title="Copiar agendas filtradas (resumo)">
+                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1" title="Copiar agendas filtradas (detalhado)">
+                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar detalhado</span>
+              </Button>
               <Button size="sm" onClick={() => { setEditando(null); setFormOpen(true); }} className="gap-1">
                 <Plus className="w-4 h-4" /> Novo
               </Button>
@@ -270,14 +276,8 @@ const Index = () => {
                 <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                   Atendimentos ({atendimentosFiltrados.length})
                 </h2>
-                <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1 h-8 text-xs">
-                  <Copy className="w-3 h-3" /> Copiar agendas (resumo)
-                </Button>
-                <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1 h-8 text-xs">
-                  <Copy className="w-3 h-3" /> Copiar detalhado
-                </Button>
-              </div>
-              <AtendimentoList
+            </div>
+            <AtendimentoList
                 atendimentos={atendimentosFiltrados}
                 onEdit={handleEdit}
                 onDelete={remover}
