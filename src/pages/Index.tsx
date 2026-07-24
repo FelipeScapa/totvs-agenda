@@ -145,7 +145,6 @@ const Index = () => {
       return;
     }
     const formatarData = (d: string) => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
-    const tipoLabel = (id: string) => id;
     const grupos = new Map<string, typeof atendimentosFiltrados>();
     atendimentosFiltrados.forEach(a => {
       const arr = grupos.get(a.cliente) ?? [];
@@ -163,23 +162,20 @@ const Index = () => {
         .forEach(a => {
           subHoras += a.duracao_horas;
           totalHoras += a.duracao_horas;
-          partes.push(`• ${formatarData(a.data)} — ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)`);
-          partes.push(`  Status: ${STATUS_LABELS[a.status] || a.status} | Tipo: ${tipoLabel(a.tipo)}`);
+          partes.push(`${formatarData(a.data)} - ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)`);
+          partes.push(`Tipo: ${a.tipo}`);
           if (a.intervalo_inicio && a.intervalo_fim) {
-            partes.push(`  Intervalo: ${a.intervalo_inicio}–${a.intervalo_fim}`);
+            partes.push(`Intervalo: ${a.intervalo_inicio}–${a.intervalo_fim}`);
           }
           if (a.descricao?.trim()) {
-            partes.push(`  Descrição: ${a.descricao.trim()}`);
-          }
-          if (a.observacoes?.trim()) {
-            partes.push(`  Observações: ${a.observacoes.trim()}`);
+            partes.push(`Descrição: ${a.descricao.trim()}`);
           }
           partes.push('');
         });
       partes.push(`Subtotal ${cliente}: ${subHoras.toFixed(2)}h`);
       partes.push('');
     });
-    partes.push(`TOTAL GERAL: ${atendimentosFiltrados.length} atendimento(s) — ${totalHoras.toFixed(2)}h`);
+    partes.push(`TOTAL GERAL: ${atendimentosFiltrados.length} atendimento(s) - ${totalHoras.toFixed(2)}h`);
 
     const texto = partes.join('\n').trimEnd();
     const textarea = document.createElement('textarea');
@@ -188,7 +184,7 @@ const Index = () => {
     textarea.select();
     document.execCommand('copy');
     document.body.removeChild(textarea);
-    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} atendimentos com detalhes completos.` });
+    toast({ title: 'Copiado!', description: `${atendimentosFiltrados.length} atendimentos com detalhes.` });
   };
 
   return (
@@ -220,12 +216,6 @@ const Index = () => {
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setServicoOpen(true)} className="gap-1">
                 <Briefcase className="w-4 h-4" /> Serviços
-              </Button>
-              <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1" title="Copiar agendas filtradas (resumo)">
-                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1" title="Copiar agendas filtradas (detalhado)">
-                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar detalhado</span>
               </Button>
               <Button size="sm" onClick={() => { setEditando(null); setFormOpen(true); }} className="gap-1">
                 <Plus className="w-4 h-4" /> Novo
@@ -269,6 +259,15 @@ const Index = () => {
 
             <div className="glass-card p-3">
               <FiltersBar filters={filters} setFilters={setFilters} />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={copiarTudoAgenda} className="gap-1" title="Copiar agendas filtradas (resumo)">
+                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={copiarTudoDetalhado} className="gap-1" title="Copiar agendas filtradas (detalhado)">
+                <Copy className="w-4 h-4" /> <span className="hidden md:inline">Copiar detalhado</span>
+              </Button>
             </div>
 
             <div>
