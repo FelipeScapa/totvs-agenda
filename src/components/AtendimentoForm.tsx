@@ -193,6 +193,16 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
               <Input value={cliente} onChange={e => setCliente(e.target.value)} placeholder="Nome do cliente" />
             )}
           </div>
+          <div>
+            <Label>Tipo de agenda *</Label>
+            <Select value={modalidade} onValueChange={(v) => setModalidade(v as Modalidade)}>
+              <SelectTrigger><SelectValue placeholder="Remota ou Presencial" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="REMOTA">{MODALIDADE_LABELS.REMOTA}</SelectItem>
+                <SelectItem value="PRESENCIAL">{MODALIDADE_LABELS.PRESENCIAL}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Tipo</Label>
@@ -270,6 +280,77 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
               </div>
             )}
           </div>
+          {modalidade === 'PRESENCIAL' && (
+            <div className="space-y-3 rounded-md border border-border/60 p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox id="tem-traslado" checked={temTraslado} onCheckedChange={(v) => setTemTraslado(!!v)} />
+                <Label htmlFor="tem-traslado" className="cursor-pointer">Possui traslado?</Label>
+              </div>
+              {temTraslado && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Origem</Label>
+                      <Input value={trasladoOrigem} onChange={e => setTrasladoOrigem(e.target.value)} placeholder="Local de saída" />
+                    </div>
+                    <div>
+                      <Label>Destino</Label>
+                      <Input value={trasladoDestino} onChange={e => setTrasladoDestino(e.target.value)} placeholder="Local de chegada" />
+                    </div>
+                    <div>
+                      <Label>Hora de saída</Label>
+                      <Input type="time" value={trasladoSaida} onChange={e => setTrasladoSaida(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Hora de retorno</Label>
+                      <Input type="time" value={trasladoRetorno} onChange={e => setTrasladoRetorno(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Distância (km)</Label>
+                      <Input type="number" min={0} step="0.1" value={trasladoKm} onChange={e => setTrasladoKm(Number(e.target.value) || 0)} />
+                    </div>
+                    <div>
+                      <Label>Custo do traslado</Label>
+                      <CurrencyInput value={trasladoValor} onChange={setTrasladoValor} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Observações do traslado</Label>
+                    <Textarea value={trasladoObs} onChange={e => setTrasladoObs(e.target.value)} placeholder="Transporte, pedágio, hospedagem..." rows={2} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-3 rounded-md border border-border/60 p-3">
+            <Label className="text-sm font-medium">Alimentação</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Café da manhã</Label>
+                <CurrencyInput value={valorCafe} onChange={setValorCafe} />
+              </div>
+              <div>
+                <Label className="text-xs">Almoço</Label>
+                <CurrencyInput value={valorAlmoco} onChange={setValorAlmoco} />
+              </div>
+              <div>
+                <Label className="text-xs">Jantar</Label>
+                <CurrencyInput value={valorJantar} onChange={setValorJantar} />
+              </div>
+            </div>
+            <div className="text-sm text-right">
+              Total de alimentação:{' '}
+              <span className="font-mono font-semibold">
+                {totalAlim.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-md border border-border/60 p-3">
+            <AnexosEditor atendimentoId={atendimentoId} />
+          </div>
+
           <div>
             <Label>Observações <span className="text-xs text-muted-foreground">(uso pessoal)</span></Label>
             <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Anotações pessoais" rows={3} />
