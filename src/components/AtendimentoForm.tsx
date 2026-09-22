@@ -44,9 +44,37 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
   const [intervaloInicio, setIntervaloInicio] = useState('12:00');
   const [intervaloFim, setIntervaloFim] = useState('13:30');
   const [observacoes, setObservacoes] = useState('');
+  const [modalidade, setModalidade] = useState<Modalidade | ''>('');
+  const [temTraslado, setTemTraslado] = useState(false);
+  const [trasladoOrigem, setTrasladoOrigem] = useState('');
+  const [trasladoDestino, setTrasladoDestino] = useState('');
+  const [trasladoSaida, setTrasladoSaida] = useState('');
+  const [trasladoRetorno, setTrasladoRetorno] = useState('');
+  const [trasladoKm, setTrasladoKm] = useState(0);
+  const [trasladoValor, setTrasladoValor] = useState(0);
+  const [trasladoObs, setTrasladoObs] = useState('');
+  const [valorCafe, setValorCafe] = useState(0);
+  const [valorAlmoco, setValorAlmoco] = useState(0);
+  const [valorJantar, setValorJantar] = useState(0);
+  const [novoId, setNovoId] = useState(() => crypto.randomUUID());
+
+  const atendimentoId = editando?.id ?? novoId;
+  const totalAlim = valorCafe + valorAlmoco + valorJantar;
 
   useEffect(() => {
     if (editando) {
+      setModalidade((editando.modalidade as Modalidade) ?? 'REMOTA');
+      setTemTraslado(!!editando.tem_traslado);
+      setTrasladoOrigem(editando.traslado_origem ?? '');
+      setTrasladoDestino(editando.traslado_destino ?? '');
+      setTrasladoSaida(editando.traslado_saida ?? '');
+      setTrasladoRetorno(editando.traslado_retorno ?? '');
+      setTrasladoKm(Number(editando.traslado_km ?? 0));
+      setTrasladoValor(Number(editando.traslado_valor ?? 0));
+      setTrasladoObs(editando.traslado_obs ?? '');
+      setValorCafe(Number(editando.valor_cafe ?? 0));
+      setValorAlmoco(Number(editando.valor_almoco ?? 0));
+      setValorJantar(Number(editando.valor_jantar ?? 0));
       setCliente(editando.cliente);
       setTipo(editando.tipo);
       setServicoId(editando.servico_id ?? (servicos[0]?.id ?? ''));
@@ -67,6 +95,10 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       toast({ title: 'Campos obrigatórios', description: 'Preencha cliente, hora início e hora fim.', variant: 'destructive' });
       return;
     }
+    if (!modalidade) {
+      toast({ title: 'Tipo de agenda obrigatório', description: 'Selecione se a agenda é Remota ou Presencial.', variant: 'destructive' });
+      return;
+    }
     let duracao = calcularDuracao(horaInicio, horaFim);
     if (temIntervalo && intervaloInicio && intervaloFim) {
       const duracaoIntervalo = calcularDuracao(intervaloInicio, intervaloFim);
@@ -79,7 +111,7 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
     const now = new Date().toISOString();
     const dataStr = format(data, 'yyyy-MM-dd');
     const atendimento: Atendimento = {
-      id: editando?.id ?? crypto.randomUUID(),
+      id: atendimentoId,
       cliente: cliente.trim(),
       descricao: descricao.trim(),
       tipo,
@@ -94,6 +126,18 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       data_atualizacao: now,
       intervalo_inicio: temIntervalo ? intervaloInicio : undefined,
       intervalo_fim: temIntervalo ? intervaloFim : undefined,
+      modalidade,
+      tem_traslado: modalidade === 'PRESENCIAL' ? temTraslado : false,
+      traslado_origem: modalidade === 'PRESENCIAL' && temTraslado ? trasladoOrigem.trim() : '',
+      traslado_destino: modalidade === 'PRESENCIAL' && temTraslado ? trasladoDestino.trim() : '',
+      traslado_saida: modalidade === 'PRESENCIAL' && temTraslado && trasladoSaida ? trasladoSaida : null,
+      traslado_retorno: modalidade === 'PRESENCIAL' && temTraslado && trasladoRetorno ? trasladoRetorno : null,
+      traslado_km: modalidade === 'PRESENCIAL' && temTraslado ? trasladoKm : 0,
+      traslado_valor: modalidade === 'PRESENCIAL' && temTraslado ? trasladoValor : 0,
+      traslado_obs: modalidade === 'PRESENCIAL' && temTraslado ? trasladoObs.trim() : '',
+      valor_cafe: valorCafe,
+      valor_almoco: valorAlmoco,
+      valor_jantar: valorJantar,
     };
     onSave(atendimento);
     onOpenChange(false);
@@ -112,6 +156,19 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
     setIntervaloInicio('12:00');
     setIntervaloFim('13:30');
     setObservacoes('');
+    setModalidade('');
+    setTemTraslado(false);
+    setTrasladoOrigem('');
+    setTrasladoDestino('');
+    setTrasladoSaida('');
+    setTrasladoRetorno('');
+    setTrasladoKm(0);
+    setTrasladoValor(0);
+    setTrasladoObs('');
+    setValorCafe(0);
+    setValorAlmoco(0);
+    setValorJantar(0);
+    setNovoId(crypto.randomUUID());
   };
 
   return (
