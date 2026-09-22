@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Atendimento } from '@/types/atendimento';
+import { Atendimento, Modalidade, MODALIDADE_LABELS } from '@/types/atendimento';
+import { CurrencyInput } from '@/components/financeiro/CurrencyInput';
+import { AnexosEditor } from '@/components/AnexosEditor';
 import { calcularDuracao } from '@/lib/atendimento-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
