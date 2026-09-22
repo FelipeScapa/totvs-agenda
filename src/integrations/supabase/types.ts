@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      atendimento_anexos: {
+        Row: {
+          atendimento_id: string
+          data_criacao: string
+          id: string
+          nome: string
+          path: string
+          tamanho: number
+          tipo: string
+        }
+        Insert: {
+          atendimento_id: string
+          data_criacao?: string
+          id: string
+          nome: string
+          path: string
+          tamanho?: number
+          tipo?: string
+        }
+        Update: {
+          atendimento_id?: string
+          data_criacao?: string
+          id?: string
+          nome?: string
+          path?: string
+          tamanho?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
       atendimentos: {
         Row: {
           cliente: string
@@ -27,10 +57,22 @@ export type Database = {
           id: string
           intervalo_fim: string | null
           intervalo_inicio: string | null
+          modalidade: string
           observacoes: string
           servico_id: string | null
           status: string
+          tem_traslado: boolean
           tipo: string
+          traslado_destino: string
+          traslado_km: number
+          traslado_obs: string
+          traslado_origem: string
+          traslado_retorno: string | null
+          traslado_saida: string | null
+          traslado_valor: number
+          valor_almoco: number
+          valor_cafe: number
+          valor_jantar: number
         }
         Insert: {
           cliente: string
@@ -44,10 +86,22 @@ export type Database = {
           id: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          modalidade?: string
           observacoes?: string
           servico_id?: string | null
           status: string
+          tem_traslado?: boolean
           tipo: string
+          traslado_destino?: string
+          traslado_km?: number
+          traslado_obs?: string
+          traslado_origem?: string
+          traslado_retorno?: string | null
+          traslado_saida?: string | null
+          traslado_valor?: number
+          valor_almoco?: number
+          valor_cafe?: number
+          valor_jantar?: number
         }
         Update: {
           cliente?: string
@@ -61,10 +115,22 @@ export type Database = {
           id?: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          modalidade?: string
           observacoes?: string
           servico_id?: string | null
           status?: string
+          tem_traslado?: boolean
           tipo?: string
+          traslado_destino?: string
+          traslado_km?: number
+          traslado_obs?: string
+          traslado_origem?: string
+          traslado_retorno?: string | null
+          traslado_saida?: string | null
+          traslado_valor?: number
+          valor_almoco?: number
+          valor_cafe?: number
+          valor_jantar?: number
         }
         Relationships: []
       }
@@ -209,12 +275,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -238,11 +304,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -263,11 +329,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -288,11 +354,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -305,11 +371,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

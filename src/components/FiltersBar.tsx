@@ -23,6 +23,7 @@ export interface FiltersState {
   status: string[];
   clientes: string[];
   servicos: string[];
+  modalidade?: 'TODOS' | 'REMOTA' | 'PRESENCIAL';
 }
 
 // Calcula intervalo do período de fechamento: dia 25 do mês anterior ao ref → dia 26 do mês ref (inclusive)
@@ -68,7 +69,7 @@ export function FiltersBar({ filters, setFilters }: Props) {
 
   const tem = filters.dataInicio || filters.dataFim || filters.fechamentoRef || filters.status.length || filters.clientes.length || filters.servicos.length;
 
-  const limpar = () => setFilters({ modo, status: [], clientes: [], servicos: [] });
+  const limpar = () => setFilters({ modo, status: [], clientes: [], servicos: [], modalidade: 'TODOS' });
 
   const ref = filters.fechamentoRef ?? new Date();
   const periodo = periodoFechamento(ref);
@@ -138,6 +139,14 @@ export function FiltersBar({ filters, setFilters }: Props) {
         placeholder="Serviços"
         className="w-36"
       />
+      <Select value={filters.modalidade ?? 'TODOS'} onValueChange={(v) => set('modalidade', v as FiltersState['modalidade'])}>
+        <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="TODOS">Remota + Presencial</SelectItem>
+          <SelectItem value="REMOTA">Somente remota</SelectItem>
+          <SelectItem value="PRESENCIAL">Somente presencial</SelectItem>
+        </SelectContent>
+      </Select>
       <MultiSelect
         options={STATUS_FLOW.map(s => ({ value: s, label: STATUS_LABELS[s] }))}
         selected={filters.status}
@@ -154,7 +163,7 @@ export function FiltersBar({ filters, setFilters }: Props) {
   );
 }
 
-export function aplicarFiltros<T extends { data: string; status: string; cliente: string; servico_id?: string }>(
+export function aplicarFiltros<T extends { data: string; status: string; cliente: string; servico_id?: string; modalidade?: string }>(
   list: T[],
   f: FiltersState
 ): T[] {
@@ -174,6 +183,7 @@ export function aplicarFiltros<T extends { data: string; status: string; cliente
     if (f.status.length && !f.status.includes(a.status)) return false;
     if (f.clientes.length && !f.clientes.includes(a.cliente)) return false;
     if (f.servicos.length && !f.servicos.includes(a.servico_id ?? '')) return false;
+    if (f.modalidade && f.modalidade !== 'TODOS' && (a.modalidade ?? 'REMOTA') !== f.modalidade) return false;
     return true;
   });
 }
