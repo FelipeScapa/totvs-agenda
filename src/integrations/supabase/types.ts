@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      atendimento_anexos: {
+        Row: {
+          atendimento_id: string
+          data_criacao: string
+          id: string
+          nome: string
+          path: string
+          tamanho: number
+          tipo: string
+        }
+        Insert: {
+          atendimento_id: string
+          data_criacao?: string
+          id: string
+          nome: string
+          path: string
+          tamanho?: number
+          tipo?: string
+        }
+        Update: {
+          atendimento_id?: string
+          data_criacao?: string
+          id?: string
+          nome?: string
+          path?: string
+          tamanho?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
       atendimentos: {
         Row: {
           cliente: string
@@ -27,10 +57,22 @@ export type Database = {
           id: string
           intervalo_fim: string | null
           intervalo_inicio: string | null
+          modalidade: string
           observacoes: string
           servico_id: string | null
           status: string
+          tem_traslado: boolean
           tipo: string
+          traslado_destino: string
+          traslado_km: number
+          traslado_obs: string
+          traslado_origem: string
+          traslado_retorno: string | null
+          traslado_saida: string | null
+          traslado_valor: number
+          valor_almoco: number
+          valor_cafe: number
+          valor_jantar: number
         }
         Insert: {
           cliente: string
@@ -44,10 +86,22 @@ export type Database = {
           id: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          modalidade?: string
           observacoes?: string
           servico_id?: string | null
           status: string
+          tem_traslado?: boolean
           tipo: string
+          traslado_destino?: string
+          traslado_km?: number
+          traslado_obs?: string
+          traslado_origem?: string
+          traslado_retorno?: string | null
+          traslado_saida?: string | null
+          traslado_valor?: number
+          valor_almoco?: number
+          valor_cafe?: number
+          valor_jantar?: number
         }
         Update: {
           cliente?: string
@@ -61,10 +115,22 @@ export type Database = {
           id?: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
+          modalidade?: string
           observacoes?: string
           servico_id?: string | null
           status?: string
+          tem_traslado?: boolean
           tipo?: string
+          traslado_destino?: string
+          traslado_km?: number
+          traslado_obs?: string
+          traslado_origem?: string
+          traslado_retorno?: string | null
+          traslado_saida?: string | null
+          traslado_valor?: number
+          valor_almoco?: number
+          valor_cafe?: number
+          valor_jantar?: number
         }
         Relationships: []
       }
