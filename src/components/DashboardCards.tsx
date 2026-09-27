@@ -1,3 +1,4 @@
+import { horasRemuneraveis } from '@/types/atendimento';
 import { useMemo } from 'react';
 import { Atendimento } from '@/types/atendimento';
 import { calcularValor, calcularStatusPrazo } from '@/lib/atendimento-utils';
@@ -55,8 +56,8 @@ export function DashboardCards({ atendimentos, ocultarValores, onToggleOcultar, 
   const stats = useMemo(() => {
     const pendentes = atendimentos.filter(a => a.status !== 'APONTADO');
     const atrasados = pendentes.filter(a => calcularStatusPrazo(a.data) === 'ATRASADO');
-    const totalHoras = atendimentos.reduce((s, a) => s + a.duracao_horas, 0);
-    const valorTotal = atendimentos.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
+    const totalHoras = atendimentos.reduce((s, a) => s + horasRemuneraveis(a), 0);
+    const valorTotal = atendimentos.reduce((s, a) => s + calcularValor(horasRemuneraveis(a), getValorHora(a)), 0);
 
     return {
       total: atendimentos.length,

@@ -1,3 +1,4 @@
+import { horasRemuneraveis } from '@/types/atendimento';
 import { useState, useMemo } from 'react';
 import { Atendimento } from '@/types/atendimento';
 import { Button } from '@/components/ui/button';
@@ -57,8 +58,8 @@ export function CalendarView({ atendimentos, onAtendimentoClick, filters, setFil
   };
 
   const stats = useMemo(() => {
-    const totalHoras = filtrados.reduce((s, a) => s + a.duracao_horas, 0);
-    const valorTotal = filtrados.reduce((s, a) => s + calcularValor(a.duracao_horas, getValorHora(a)), 0);
+    const totalHoras = filtrados.reduce((s, a) => s + horasRemuneraveis(a), 0);
+    const valorTotal = filtrados.reduce((s, a) => s + calcularValor(horasRemuneraveis(a), getValorHora(a)), 0);
     const counts: Record<string, number> = {};
     STATUS_FLOW.forEach(s => counts[s] = 0);
     filtrados.forEach(a => { counts[a.status] = (counts[a.status] ?? 0) + 1; });

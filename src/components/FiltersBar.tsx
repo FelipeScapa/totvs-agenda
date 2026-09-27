@@ -23,7 +23,7 @@ export interface FiltersState {
   status: string[];
   clientes: string[];
   servicos: string[];
-  modalidade?: 'TODOS' | 'REMOTA' | 'PRESENCIAL';
+  modalidades?: string[];
 }
 
 // Calcula intervalo do período de fechamento: dia 25 do mês anterior ao ref → dia 26 do mês ref (inclusive)
@@ -67,9 +67,9 @@ export function FiltersBar({ filters, setFilters }: Props) {
   const set = <K extends keyof FiltersState>(k: K, v: FiltersState[K]) =>
     setFilters({ ...filters, [k]: v });
 
-  const tem = filters.dataInicio || filters.dataFim || filters.fechamentoRef || filters.status.length || filters.clientes.length || filters.servicos.length;
+  const tem = filters.dataInicio || filters.dataFim || filters.fechamentoRef || filters.status.length || filters.clientes.length || filters.servicos.length || filters.modalidades?.length;
 
-  const limpar = () => setFilters({ modo, status: [], clientes: [], servicos: [], modalidade: 'TODOS' });
+  const limpar = () => setFilters({ modo, status: [], clientes: [], servicos: [], modalidades: [] });
 
   const ref = filters.fechamentoRef ?? new Date();
   const periodo = periodoFechamento(ref);
@@ -139,14 +139,13 @@ export function FiltersBar({ filters, setFilters }: Props) {
         placeholder="Serviços"
         className="w-36"
       />
-      <Select value={filters.modalidade ?? 'TODOS'} onValueChange={(v) => set('modalidade', v as FiltersState['modalidade'])}>
-        <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="TODOS">Remota + Presencial</SelectItem>
-          <SelectItem value="REMOTA">Somente remota</SelectItem>
-          <SelectItem value="PRESENCIAL">Somente presencial</SelectItem>
-        </SelectContent>
-      </Select>
+      <MultiSelect
+        options={[{ value: 'REMOTA', label: 'Remota' }, { value: 'PRESENCIAL', label: 'Presencial' }]}
+        selected={filters.modalidades ?? []}
+        onChange={(v) => set('modalidades', v)}
+        placeholder="Remota/Presencial"
+        className="w-40"
+      />
       <MultiSelect
         options={STATUS_FLOW.map(s => ({ value: s, label: STATUS_LABELS[s] }))}
         selected={filters.status}
@@ -183,7 +182,7 @@ export function aplicarFiltros<T extends { data: string; status: string; cliente
     if (f.status.length && !f.status.includes(a.status)) return false;
     if (f.clientes.length && !f.clientes.includes(a.cliente)) return false;
     if (f.servicos.length && !f.servicos.includes(a.servico_id ?? '')) return false;
-    if (f.modalidade && f.modalidade !== 'TODOS' && (a.modalidade ?? 'REMOTA') !== f.modalidade) return false;
+    if (f.modalidades?.length && !f.modalidades.includes(a.modalidade ?? 'REMOTA')) return false;
     return true;
   });
 }
