@@ -40,10 +40,37 @@ export interface Atendimento {
   valor_cafe?: number;
   valor_almoco?: number;
   valor_jantar?: number;
+  houve_traslado?: boolean | null;
+  houve_refeicao?: boolean | null;
+  traslado_horas?: number;
 }
 
 export function totalAlimentacao(a: Pick<Atendimento, 'valor_cafe' | 'valor_almoco' | 'valor_jantar'>): number {
   return (a.valor_cafe ?? 0) + (a.valor_almoco ?? 0) + (a.valor_jantar ?? 0);
+}
+
+export interface LimitesRefeicao { cafe: number; almoco: number; jantar: number }
+export const LIMITES_PADRAO: LimitesRefeicao = { cafe: 10, almoco: 20, jantar: 20 };
+
+export function calcularAlimentacao(a: Pick<Atendimento, 'valor_cafe' | 'valor_almoco' | 'valor_jantar'>, l: LimitesRefeicao) {
+  const itens: [number, number][] = [[a.valor_cafe ?? 0, l.cafe], [a.valor_almoco ?? 0, l.almoco], [a.valor_jantar ?? 0, l.jantar]];
+  let gasto = 0, cliente = 0, excedente = 0;
+  for (const [v, lim] of itens) {
+    gasto += v;
+    cliente += Math.min(v, lim);
+    excedente += Math.max(v - lim, 0);
+  }
+  return { gasto, cliente, excedente };
+}
+
+/** Horas remuneráveis = horas da agenda + horas de traslado */
+export function horasRemuneraveis(a: Pick<Atendimento, 'duracao_horas' | 'traslado_horas'>): number {
+  return (Number(a.duracao_horas) || 0) + (Number(a.traslado_horas) || 0);
+}
+
+export function formatarHHMM(horas: number): string {
+  const total = Math.round((Number(horas) || 0) * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 export const TIPO_LABELS: Record<TipoAtendimento, string> = {
