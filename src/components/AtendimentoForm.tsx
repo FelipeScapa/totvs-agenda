@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Atendimento, Modalidade, MODALIDADE_LABELS } from '@/types/atendimento';
+import { Atendimento, Modalidade, MODALIDADE_LABELS, calcularAlimentacao } from '@/types/atendimento';
+import { useLimitesRefeicao } from '@/hooks/use-limites-refeicao';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CurrencyInput } from '@/components/financeiro/CurrencyInput';
 import { AnexosEditor } from '@/components/AnexosEditor';
 import { calcularDuracao } from '@/lib/atendimento-utils';
@@ -56,10 +58,15 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
   const [valorCafe, setValorCafe] = useState(0);
   const [valorAlmoco, setValorAlmoco] = useState(0);
   const [valorJantar, setValorJantar] = useState(0);
+  const [houveTraslado, setHouveTraslado] = useState<boolean | null>(null);
+  const [houveRefeicao, setHouveRefeicao] = useState<boolean | null>(null);
+  const [trasladoHoras, setTrasladoHoras] = useState('');
+  const { limites } = useLimitesRefeicao();
   const [novoId, setNovoId] = useState(() => crypto.randomUUID());
 
   const atendimentoId = editando?.id ?? novoId;
-  const totalAlim = valorCafe + valorAlmoco + valorJantar;
+  const alim = calcularAlimentacao({ valor_cafe: valorCafe, valor_almoco: valorAlmoco, valor_jantar: valorJantar }, limites);
+  const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   useEffect(() => {
     if (editando) {
@@ -75,6 +82,9 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       setValorCafe(Number(editando.valor_cafe ?? 0));
       setValorAlmoco(Number(editando.valor_almoco ?? 0));
       setValorJantar(Number(editando.valor_jantar ?? 0));
+      setHouveTraslado(editando.houve_traslado ?? null);
+      setHouveRefeicao(editando.houve_refeicao ?? null);
+      { const th = Number(editando.traslado_horas ?? 0); const m = Math.round(th * 60); setTrasladoHoras(th > 0 ? `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}` : ''); }
       setCliente(editando.cliente);
       setTipo(editando.tipo);
       setServicoId(editando.servico_id ?? (servicos[0]?.id ?? ''));
@@ -108,6 +118,9 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       toast({ title: 'Duração inválida', description: 'Hora fim deve ser maior que hora início.', variant: 'destructive' });
       return;
     }
+    const pres = modalidade === 'PRESENCIAL';
+    const [thh, thm] = (trasladoHoras || '0:0').split(':').map(Number);
+    const thNum = parseFloat((((thh || 0) * 60 + (thm || 0)) / 60).toFixed(4));
     const now = new Date().toISOString();
     const dataStr = format(data, 'yyyy-MM-dd');
     const atendimento: Atendimento = {
@@ -127,17 +140,15 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
       intervalo_inicio: temIntervalo ? intervaloInicio : undefined,
       intervalo_fim: temIntervalo ? intervaloFim : undefined,
       modalidade,
-      tem_traslado: modalidade === 'PRESENCIAL' ? temTraslado : false,
-      traslado_origem: modalidade === 'PRESENCIAL' && temTraslado ? trasladoOrigem.trim() : '',
-      traslado_destino: modalidade === 'PRESENCIAL' && temTraslado ? trasladoDestino.trim() : '',
-      traslado_saida: modalidade === 'PRESENCIAL' && temTraslado && trasladoSaida ? trasladoSaida : null,
-      traslado_retorno: modalidade === 'PRESENCIAL' && temTraslado && trasladoRetorno ? trasladoRetorno : null,
-      traslado_km: modalidade === 'PRESENCIAL' && temTraslado ? trasladoKm : 0,
-      traslado_valor: modalidade === 'PRESENCIAL' && temTraslado ? trasladoValor : 0,
-      traslado_obs: modalidade === 'PRESENCIAL' && temTraslado ? trasladoObs.trim() : '',
-      valor_cafe: valorCafe,
-      valor_almoco: valorAlmoco,
-      valor_jantar: valorJantar,
+      tem_traslado: pres && houveTraslado === true,
+      houve_traslado: pres ? houveTraslado : null,
+      houve_refeicao: pres ? houveRefeicao : null,
+      traslado_horas: pres && houveTraslado ? thNum : 0,
+      traslado_km: 0,
+      traslado_valor: 0,
+      valor_cafe: pres && houveRefeicao ? valorCafe : 0,
+      valor_almoco: pres && houveRefeicao ? valorAlmoco : 0,
+      valor_jantar: pres && houveRefeicao ? valorJantar : 0,
     };
     onSave(atendimento);
     onOpenChange(false);
@@ -168,6 +179,9 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
     setValorCafe(0);
     setValorAlmoco(0);
     setValorJantar(0);
+    setHouveTraslado(null);
+    setHouveRefeicao(null);
+    setTrasladoHoras('');
     setNovoId(crypto.randomUUID());
   };
 
@@ -282,70 +296,48 @@ export function AtendimentoForm({ open, onOpenChange, onSave, editando }: Atendi
           </div>
           {modalidade === 'PRESENCIAL' && (
             <div className="space-y-3 rounded-md border border-border/60 p-3">
-              <div className="flex items-center gap-2">
-                <Checkbox id="tem-traslado" checked={temTraslado} onCheckedChange={(v) => setTemTraslado(!!v)} />
-                <Label htmlFor="tem-traslado" className="cursor-pointer">Possui traslado?</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Houve traslado?</Label>
+                <RadioGroup className="flex gap-4" value={houveTraslado === null ? '' : houveTraslado ? 'S' : 'N'} onValueChange={v => setHouveTraslado(v === 'S')}>
+                  <div className="flex items-center gap-1"><RadioGroupItem value="S" id="tr-s" /><Label htmlFor="tr-s">Sim</Label></div>
+                  <div className="flex items-center gap-1"><RadioGroupItem value="N" id="tr-n" /><Label htmlFor="tr-n">Não</Label></div>
+                </RadioGroup>
               </div>
-              {temTraslado && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Origem</Label>
-                      <Input value={trasladoOrigem} onChange={e => setTrasladoOrigem(e.target.value)} placeholder="Local de saída" />
-                    </div>
-                    <div>
-                      <Label>Destino</Label>
-                      <Input value={trasladoDestino} onChange={e => setTrasladoDestino(e.target.value)} placeholder="Local de chegada" />
-                    </div>
-                    <div>
-                      <Label>Hora de saída</Label>
-                      <Input type="time" value={trasladoSaida} onChange={e => setTrasladoSaida(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>Hora de retorno</Label>
-                      <Input type="time" value={trasladoRetorno} onChange={e => setTrasladoRetorno(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>Distância (km)</Label>
-                      <Input type="number" min={0} step="0.1" value={trasladoKm} onChange={e => setTrasladoKm(Number(e.target.value) || 0)} />
-                    </div>
-                    <div>
-                      <Label>Custo do traslado</Label>
-                      <CurrencyInput value={trasladoValor} onChange={setTrasladoValor} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Observações do traslado</Label>
-                    <Textarea value={trasladoObs} onChange={e => setTrasladoObs(e.target.value)} placeholder="Transporte, pedágio, hospedagem..." rows={2} />
-                  </div>
+              {houveTraslado === null && <p className="text-xs text-muted-foreground">Não informado</p>}
+              {houveTraslado && (
+                <div>
+                  <Label>Horas de traslado (HH:MM)</Label>
+                  <Input type="time" value={trasladoHoras} onChange={e => setTrasladoHoras(e.target.value)} />
+                  <p className="text-xs text-muted-foreground mt-1">Somadas às horas da agenda para remuneração.</p>
                 </div>
               )}
             </div>
           )}
 
-          <div className="space-y-3 rounded-md border border-border/60 p-3">
-            <Label className="text-sm font-medium">Alimentação</Label>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Café da manhã</Label>
-                <CurrencyInput value={valorCafe} onChange={setValorCafe} />
+          {modalidade === 'PRESENCIAL' && (
+            <div className="space-y-3 rounded-md border border-border/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Houve refeição?</Label>
+                <RadioGroup className="flex gap-4" value={houveRefeicao === null ? '' : houveRefeicao ? 'S' : 'N'} onValueChange={v => setHouveRefeicao(v === 'S')}>
+                  <div className="flex items-center gap-1"><RadioGroupItem value="S" id="rf-s" /><Label htmlFor="rf-s">Sim</Label></div>
+                  <div className="flex items-center gap-1"><RadioGroupItem value="N" id="rf-n" /><Label htmlFor="rf-n">Não</Label></div>
+                </RadioGroup>
               </div>
-              <div>
-                <Label className="text-xs">Almoço</Label>
-                <CurrencyInput value={valorAlmoco} onChange={setValorAlmoco} />
-              </div>
-              <div>
-                <Label className="text-xs">Jantar</Label>
-                <CurrencyInput value={valorJantar} onChange={setValorJantar} />
-              </div>
+              {houveRefeicao === null && <p className="text-xs text-muted-foreground">Não informado</p>}
+              {houveRefeicao && (<>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label className="text-xs">Café da manhã</Label><CurrencyInput value={valorCafe} onChange={setValorCafe} /><span className="text-[10px] text-muted-foreground">Limite {brl(limites.cafe)}</span></div>
+                  <div><Label className="text-xs">Almoço</Label><CurrencyInput value={valorAlmoco} onChange={setValorAlmoco} /><span className="text-[10px] text-muted-foreground">Limite {brl(limites.almoco)}</span></div>
+                  <div><Label className="text-xs">Jantar</Label><CurrencyInput value={valorJantar} onChange={setValorJantar} /><span className="text-[10px] text-muted-foreground">Limite {brl(limites.jantar)}</span></div>
+                </div>
+                <div className="text-sm grid grid-cols-3 gap-2 font-mono">
+                  <div>Total gasto<br /><b>{brl(alim.gasto)}</b></div>
+                  <div>Total cliente<br /><b>{brl(alim.cliente)}</b></div>
+                  <div className={alim.excedente > 0 ? 'text-destructive' : ''}>Excedente<br /><b>{brl(alim.excedente)}</b></div>
+                </div>
+              </>)}
             </div>
-            <div className="text-sm text-right">
-              Total de alimentação:{' '}
-              <span className="font-mono font-semibold">
-                {totalAlim.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </span>
-            </div>
-          </div>
+          )}
 
           <div className="rounded-md border border-border/60 p-3">
             <AnexosEditor atendimentoId={atendimentoId} />
