@@ -54,6 +54,8 @@ export type Database = {
           duracao_horas: number
           hora_fim: string
           hora_inicio: string
+          houve_refeicao: boolean | null
+          houve_traslado: boolean | null
           id: string
           intervalo_fim: string | null
           intervalo_inicio: string | null
@@ -64,6 +66,7 @@ export type Database = {
           tem_traslado: boolean
           tipo: string
           traslado_destino: string
+          traslado_horas: number
           traslado_km: number
           traslado_obs: string
           traslado_origem: string
@@ -83,6 +86,8 @@ export type Database = {
           duracao_horas?: number
           hora_fim: string
           hora_inicio: string
+          houve_refeicao?: boolean | null
+          houve_traslado?: boolean | null
           id: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
@@ -93,6 +98,7 @@ export type Database = {
           tem_traslado?: boolean
           tipo: string
           traslado_destino?: string
+          traslado_horas?: number
           traslado_km?: number
           traslado_obs?: string
           traslado_origem?: string
@@ -112,6 +118,8 @@ export type Database = {
           duracao_horas?: number
           hora_fim?: string
           hora_inicio?: string
+          houve_refeicao?: boolean | null
+          houve_traslado?: boolean | null
           id?: string
           intervalo_fim?: string | null
           intervalo_inicio?: string | null
@@ -122,6 +130,7 @@ export type Database = {
           tem_traslado?: boolean
           tipo?: string
           traslado_destino?: string
+          traslado_horas?: number
           traslado_km?: number
           traslado_obs?: string
           traslado_origem?: string
@@ -149,6 +158,24 @@ export type Database = {
           data_criacao?: string
           id?: string
           nome?: string
+        }
+        Relationships: []
+      }
+      configuracoes: {
+        Row: {
+          data_criacao: string
+          id: string
+          valor: Json
+        }
+        Insert: {
+          data_criacao?: string
+          id: string
+          valor?: Json
+        }
+        Update: {
+          data_criacao?: string
+          id?: string
+          valor?: Json
         }
         Relationships: []
       }

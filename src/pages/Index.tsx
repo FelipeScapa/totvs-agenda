@@ -22,6 +22,9 @@ import { STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { gerarTextoAgenda } from '@/lib/atendimento-utils';
+import { horasRemuneraveis, formatarHHMM } from '@/types/atendimento';
+import { ConfiguracaoGeral } from '@/components/ConfiguracaoGeral';
+import { Settings } from 'lucide-react';
 
 const STATUS_DOT: Record<string, string> = {
   REGISTRADO: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -43,6 +46,7 @@ const Index = () => {
   const [apenasAtrasados, setApenasAtrasados] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [feriadosOpen, setFeriadosOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
   const [appTab, setAppTab] = useState<'agenda' | 'financeiro'>('agenda');
 
   const atendimentosFiltrados = useMemo(() => {
@@ -145,39 +149,25 @@ const Index = () => {
       return;
     }
     const formatarData = (d: string) => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
-    const grupos = new Map<string, typeof atendimentosFiltrados>();
-    atendimentosFiltrados.forEach(a => {
-      const arr = grupos.get(a.cliente) ?? [];
-      arr.push(a);
-      grupos.set(a.cliente, arr);
-    });
-
+    const subtotais = new Map<string, number>();
     let totalHoras = 0;
-    const partes: string[] = [];
-    grupos.forEach((lista, cliente) => {
-      partes.push(`═══ Cliente: ${cliente} ═══`);
-      let subHoras = 0;
-      lista
-        .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio))
-        .forEach(a => {
-          subHoras += a.duracao_horas;
-          totalHoras += a.duracao_horas;
-          partes.push(`${formatarData(a.data)} - ${a.hora_inicio} às ${a.hora_fim} (${a.duracao_horas}h)`);
-          partes.push(`Tipo: ${a.tipo}`);
-          if (a.intervalo_inicio && a.intervalo_fim) {
-            partes.push(`Intervalo: ${a.intervalo_inicio}–${a.intervalo_fim}`);
-          }
-          if (a.descricao?.trim()) {
-            partes.push(`Descrição: ${a.descricao.trim()}`);
-          }
-          partes.push('');
-        });
-      partes.push(`Subtotal ${cliente}: ${subHoras.toFixed(2)}h`);
-      partes.push('');
-    });
-    partes.push(`TOTAL GERAL: ${atendimentosFiltrados.length} atendimento(s) - ${totalHoras.toFixed(2)}h`);
-
-    const texto = partes.join('\n').trimEnd();
+    const blocos: string[] = [];
+    [...atendimentosFiltrados]
+      .sort((a, b) => a.data.localeCompare(b.data) || a.hora_inicio.localeCompare(b.hora_inicio))
+      .forEach(a => {
+        const h = horasRemuneraveis(a);
+        totalHoras += h;
+        subtotais.set(a.cliente, (subtotais.get(a.cliente) ?? 0) + h);
+        const l = [`═══ Cliente: ${a.cliente} ═══`, '', `${formatarData(a.data)} - ${a.hora_inicio} às ${a.hora_fim} (${formatarHHMM(a.duracao_horas)})`];
+        if (a.intervalo_inicio && a.intervalo_fim) l.push(`Intervalo: ${a.intervalo_inicio}–${a.intervalo_fim}`);
+        if ((a.traslado_horas ?? 0) > 0) l.push(`Traslado: ${formatarHHMM(a.traslado_horas!)} · Total remunerável: ${formatarHHMM(h)}`);
+        if (a.descricao?.trim()) l.push('', a.descricao.trim());
+        blocos.push(l.join('\n'));
+      });
+    const resumo: string[] = [];
+    subtotais.forEach((h, c) => resumo.push(`Subtotal ${c}: ${formatarHHMM(h)}`));
+    resumo.push(`TOTAL GERAL: ${atendimentosFiltrados.length} atendimento(s) - ${formatarHHMM(totalHoras)}`);
+    const texto = blocos.join('\n\n\n') + '\n\n\n' + resumo.join('\n');
     const textarea = document.createElement('textarea');
     textarea.value = texto;
     document.body.appendChild(textarea);
@@ -203,6 +193,9 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setFeriadosOpen(true)} className="gap-1" title="Férias e Feriados">
               <Plane className="w-4 h-4" /> <span className="hidden md:inline">Férias/Feriados</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setConfigOpen(true)} className="gap-1" title="Configuração Geral">
+              <Settings className="w-4 h-4" /> <span className="hidden md:inline">Configuração</span>
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setBackupOpen(true)} className="gap-1" title="Backup / Restaurar">
               <Database className="w-4 h-4" /> <span className="hidden md:inline">Backup</span>
@@ -307,6 +300,7 @@ const Index = () => {
 
       <BackupManager open={backupOpen} onOpenChange={setBackupOpen} />
       <FeriadosManager open={feriadosOpen} onOpenChange={setFeriadosOpen} />
+      <ConfiguracaoGeral open={configOpen} onOpenChange={setConfigOpen} />
 
       <AtendimentoForm
         open={formOpen}

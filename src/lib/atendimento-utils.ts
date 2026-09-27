@@ -1,4 +1,4 @@
-import { Atendimento, StatusPrazo, VALOR_HORA } from '@/types/atendimento';
+import { Atendimento, StatusPrazo, VALOR_HORA, formatarHHMM, horasRemuneraveis } from '@/types/atendimento';
 
 export function calcularDuracao(horaInicio: string, horaFim: string): number {
   const [hi, mi] = horaInicio.split(':').map(Number);
@@ -24,17 +24,10 @@ export function calcularStatusPrazo(dataAtendimento: string): StatusPrazo {
 }
 
 export function gerarTextoOS(a: Atendimento): string {
-  return `Cliente: ${a.cliente}
-
-Atividade: ${a.tipo}
-
-Descrição:
-${a.descricao}
-
-Detalhes:
-${a.observacoes || '(sem observações)'}
-
-Tempo total: ${a.duracao_horas} horas`;
+  const linhas = [`═══ Cliente: ${a.cliente} ═══`, '', `${formatarData(a.data)} - ${a.hora_inicio} às ${a.hora_fim} (${formatarHHMM(a.duracao_horas)})`];
+  if ((a.traslado_horas ?? 0) > 0) linhas.push(`Traslado: ${formatarHHMM(a.traslado_horas!)} · Total remunerável: ${formatarHHMM(horasRemuneraveis(a))}`);
+  if (a.descricao?.trim()) linhas.push('', a.descricao.trim());
+  return linhas.join('\n');
 }
 
 export function gerarTextoAgenda(a: Atendimento): string {

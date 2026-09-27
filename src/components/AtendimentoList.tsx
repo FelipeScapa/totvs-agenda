@@ -1,4 +1,4 @@
-import { Atendimento, STATUS_LABELS, STATUS_FLOW } from '@/types/atendimento';
+import { Atendimento, STATUS_LABELS, STATUS_FLOW, horasRemuneraveis, formatarHHMM } from '@/types/atendimento';
 import { diasRestantesPrazo, textoPrazo, calcularValor, formatarData, gerarTextoOS, gerarTextoAgenda, conflitaAgenda } from '@/lib/atendimento-utils';
 import { useTiposAtendimento } from '@/hooks/use-tipos-atendimento';
 import { useServicos } from '@/hooks/use-servicos';
@@ -117,9 +117,11 @@ export function AtendimentoList({ atendimentos, onEdit, onDelete, onStatusChange
               <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                 <span>{formatarData(a.data)}</span>
                 <span>{a.hora_inicio}–{a.hora_fim}</span>
-                <span className="font-mono">{a.duracao_horas}h</span>
+                <span className="font-mono">{formatarHHMM(a.duracao_horas)}</span>
+                {(a.traslado_horas ?? 0) > 0 && <span className="font-mono text-xs">+ traslado {formatarHHMM(a.traslado_horas!)} = {formatarHHMM(horasRemuneraveis(a))}</span>}
+                <Badge variant="outline" className="text-[10px]">{a.modalidade === 'PRESENCIAL' ? 'Presencial' : 'Remota'}</Badge>
                 <span className="font-mono">
-                  {ocultarValores ? '••••••' : `R$${calcularValor(a.duracao_horas, valorHora).toFixed(2)}`}
+                  {ocultarValores ? '••••••' : `R$${calcularValor(horasRemuneraveis(a), valorHora).toFixed(2)}`}
                 </span>
                 <span>{tipoLabel(a.tipo)}</span>
                 {servico && <span className="text-xs bg-secondary/50 px-1.5 py-0.5 rounded">{servico.nome}</span>}
